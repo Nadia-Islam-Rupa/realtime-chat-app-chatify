@@ -35,7 +35,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   ProfileRemoteDataSourceImpl(this._client);
 
-  static const String _bucket = 'profile-images';
+  static const String _bucket = AppConstants.profileImagesBucket;
 
   @override
   Future<ProfileModel> createProfile(ProfileModel model) async {

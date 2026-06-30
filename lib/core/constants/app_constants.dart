@@ -17,6 +17,7 @@ abstract final class AppConstants {
 
   // --- Supabase storage buckets ---
   static const String avatarsBucket = 'avatars';
+  static const String profileImagesBucket = 'profile-pictures';
 
   // --- Pagination ---
   static const int defaultPageSize = 20;

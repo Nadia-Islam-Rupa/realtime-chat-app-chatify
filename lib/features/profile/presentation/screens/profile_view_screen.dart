@@ -35,9 +35,11 @@ class ProfileViewScreen extends ConsumerWidget {
             children: [
               Icon(Icons.error_outline, size: 48, color: colorScheme.error),
               const SizedBox(height: 12),
-              Text(e.toString(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: colorScheme.error)),
+              Text(
+                e.toString(),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colorScheme.error),
+              ),
             ],
           ),
         ),
@@ -57,10 +59,7 @@ class ProfileViewScreen extends ConsumerWidget {
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [
-                            AppColors.primaryDark,
-                            colorScheme.surface,
-                          ],
+                          colors: [AppColors.primaryDark, colorScheme.surface],
                         ),
                       ),
                     ),
@@ -77,8 +76,11 @@ class ProfileViewScreen extends ConsumerWidget {
                                 ? NetworkImage(profile.imageUrl!)
                                 : null,
                             child: profile.imageUrl == null
-                                ? const Icon(Icons.person,
-                                    size: 64, color: AppColors.primary)
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 64,
+                                    color: AppColors.primary,
+                                  )
                                 : null,
                           ),
                           const SizedBox(height: 12),
@@ -118,16 +120,19 @@ class ProfileViewScreen extends ConsumerWidget {
             // ---- Profile info ----
             SliverToBoxAdapter(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Name
                     Text(
                       profile.name,
-                      style: theme.textTheme.headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
 
                     // About
@@ -147,12 +152,14 @@ class ProfileViewScreen extends ConsumerWidget {
 
                     // Bio
                     if (profile.bio != null && profile.bio!.isNotEmpty) ...[
-                      Text('About',
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w600)),
+                      Text(
+                        'About',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       const SizedBox(height: 8),
-                      Text(profile.bio!,
-                          style: theme.textTheme.bodyMedium),
+                      Text(profile.bio!, style: theme.textTheme.bodyMedium),
                       const SizedBox(height: 24),
                     ],
 
@@ -165,7 +172,8 @@ class ProfileViewScreen extends ConsumerWidget {
                               // TODO: wire to chat module
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text('Chat coming soon')),
+                                  content: Text('Chat coming soon'),
+                                ),
                               );
                             },
                             icon: const Icon(Icons.chat_bubble_outline),
@@ -182,8 +190,8 @@ class ProfileViewScreen extends ConsumerWidget {
                               // TODO: wire to friends module
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content:
-                                        Text('Friend request coming soon')),
+                                  content: Text('Friend request coming soon'),
+                                ),
                               );
                             },
                             icon: const Icon(Icons.person_add_outlined),

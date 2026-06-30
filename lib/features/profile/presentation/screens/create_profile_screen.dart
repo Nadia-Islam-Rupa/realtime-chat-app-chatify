@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/router/app_router.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../providers/profile_providers.dart';
 
 class CreateProfileScreen extends ConsumerStatefulWidget {
@@ -77,14 +77,18 @@ class _CreateProfileScreenState extends ConsumerState<CreateProfileScreen> {
     if (name.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please go back and enter your display name (at least 2 characters)'),
+          content: Text(
+            'Please go back and enter your display name (at least 2 characters)',
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
 
-    final userId = ref.read(authStateProvider).valueOrNull?.id;
+    // Read userId directly from Supabase session — never null as long as
+    // the user is signed in, regardless of Riverpod AutoDispose lifecycle.
+    final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -100,7 +104,6 @@ class _CreateProfileScreenState extends ConsumerState<CreateProfileScreen> {
 
     final notifier = ref.read(createProfileNotifierProvider.notifier);
 
-    // Set all values synchronously before submit reads state
     notifier.setName(name);
     notifier.setAbout(_aboutController.text.trim());
     notifier.setBio(_bioController.text.trim());
@@ -109,11 +112,9 @@ class _CreateProfileScreenState extends ConsumerState<CreateProfileScreen> {
 
     if (!mounted) return;
     if (success) {
-      // Invalidate the profileExists cache so the router won't redirect back here
       ref.invalidate(profileExistsProvider(userId));
       router.go(RouteNames.home);
     }
-    // On failure, the notifier sets errorMessage → SnackBar via ref.listen
   }
 
   bool _canProceedStep2() => _nameController.text.trim().length >= 2;
@@ -125,7 +126,8 @@ class _CreateProfileScreenState extends ConsumerState<CreateProfileScreen> {
     final colorScheme = theme.colorScheme;
 
     ref.listen(createProfileNotifierProvider, (prev, next) {
-      if (next.errorMessage != null && prev?.errorMessage != next.errorMessage) {
+      if (next.errorMessage != null &&
+          prev?.errorMessage != next.errorMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.errorMessage!),
@@ -178,8 +180,9 @@ class _CreateProfileScreenState extends ConsumerState<CreateProfileScreen> {
             ),
             Text(
               'Step ${_currentStep + 1} of $_totalSteps',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 8),
 
@@ -243,15 +246,17 @@ class _Step1ImagePicker extends StatelessWidget {
         children: [
           Text(
             'Add a profile photo',
-            style: theme.textTheme.headlineSmall
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             'Help your friends recognise you',
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: colorScheme.onSurfaceVariant),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 40),
@@ -268,8 +273,11 @@ class _Step1ImagePicker extends StatelessWidget {
                       ? FileImage(pickedImage!) as ImageProvider
                       : null,
                   child: pickedImage == null
-                      ? const Icon(Icons.person,
-                          size: 72, color: AppColors.primary)
+                      ? const Icon(
+                          Icons.person,
+                          size: 72,
+                          color: AppColors.primary,
+                        )
                       : null,
                 ),
                 Container(
@@ -279,8 +287,11 @@ class _Step1ImagePicker extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: colorScheme.surface, width: 2),
                   ),
-                  child: Icon(Icons.camera_alt,
-                      size: 20, color: colorScheme.onPrimary),
+                  child: Icon(
+                    Icons.camera_alt,
+                    size: 20,
+                    color: colorScheme.onPrimary,
+                  ),
                 ),
               ],
             ),
@@ -299,15 +310,20 @@ class _Step1ImagePicker extends StatelessWidget {
                 FilledButton(
                   onPressed: onNext,
                   style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52)),
+                    minimumSize: const Size.fromHeight(52),
+                  ),
                   child: const Text('Continue'),
                 ),
               OutlinedButton(
                 onPressed: onNext,
                 style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52)),
+                  minimumSize: const Size.fromHeight(52),
+                ),
                 child: Text(
-                    pickedImage != null ? 'Continue without photo' : 'Skip for now'),
+                  pickedImage != null
+                      ? 'Continue without photo'
+                      : 'Skip for now',
+                ),
               ),
             ],
           ),
@@ -359,14 +375,16 @@ class _Step2NameAboutState extends State<_Step2NameAbout> {
         children: [
           Text(
             'What\'s your name?',
-            style: theme.textTheme.headlineSmall
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'This is how you\'ll appear to others',
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: colorScheme.onSurfaceVariant),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 32),
 
@@ -402,7 +420,8 @@ class _Step2NameAboutState extends State<_Step2NameAbout> {
           FilledButton(
             onPressed: widget.canProceed() ? widget.onNext : null,
             style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52)),
+              minimumSize: const Size.fromHeight(52),
+            ),
             child: const Text('Continue'),
           ),
         ],
@@ -438,14 +457,16 @@ class _Step3Bio extends StatelessWidget {
         children: [
           Text(
             'Tell people about yourself',
-            style: theme.textTheme.headlineSmall
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Optional — you can always add this later',
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: colorScheme.onSurfaceVariant),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 32),
 
@@ -470,13 +491,16 @@ class _Step3Bio extends StatelessWidget {
           FilledButton(
             onPressed: isSubmitting ? null : onSubmit,
             style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52)),
+              minimumSize: const Size.fromHeight(52),
+            ),
             child: isSubmitting
                 ? const SizedBox(
                     height: 22,
                     width: 22,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2.5, color: Colors.white),
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
                   )
                 : const Text('Finish'),
           ),

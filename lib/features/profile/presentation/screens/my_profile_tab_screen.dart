@@ -5,11 +5,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/profile.dart';
 import '../providers/profile_providers.dart';
 
 /// Tab body for the Profile tab — shows the *current user's own* profile
-/// as a read-only summary with an Edit button.
+/// as a read-only summary with an Edit button and a Log Out button.
 ///
 /// Mounted inside the HomeShellScreen IndexedStack for tab 3.
 /// No Scaffold or AppBar — provided by HomeShellScreen.
@@ -37,10 +38,8 @@ class MyProfileTabScreen extends ConsumerWidget {
             children: [
               Icon(Icons.error_outline, size: 48, color: colorScheme.error),
               const SizedBox(height: 12),
-              Text(
-                'Could not load profile',
-                style: theme.textTheme.titleMedium,
-              ),
+              Text('Could not load profile',
+                  style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               Text(
                 e.toString(),
@@ -60,7 +59,7 @@ class MyProfileTabScreen extends ConsumerWidget {
 // Content
 // ---------------------------------------------------------------------------
 
-class _ProfileContent extends StatelessWidget {
+class _ProfileContent extends ConsumerWidget {
   final Profile profile;
   const _ProfileContent({required this.profile});
 
@@ -73,10 +72,62 @@ class _ProfileContent extends StatelessWidget {
     return '${months[dt.month - 1]} ${dt.year}';
   }
 
+  Future<void> _confirmAndSignOut(BuildContext context, WidgetRef ref) async {
+    // Show a confirmation dialog before signing out
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    await ref.read(signOutNotifierProvider.notifier).signOut();
+
+    // The router's auth redirect will automatically send the user to /sign-in
+    // once Supabase fires the sign-out event, but we also navigate immediately
+    // so there's no visible delay.
+    if (context.mounted) {
+      context.go(RouteNames.signIn);
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    final signOutState = ref.watch(signOutNotifierProvider);
+    final isSigningOut = signOutState.isLoading;
+
+    // Show error snackbar if sign-out fails
+    ref.listen(signOutNotifierProvider, (prev, next) {
+      if (next.hasError && next.error != prev?.error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sign out failed: ${next.error}'),
+            backgroundColor: colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
 
     return SingleChildScrollView(
       child: Column(
@@ -89,10 +140,7 @@ class _ProfileContent extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.primaryDark,
-                  colorScheme.surface,
-                ],
+                colors: [AppColors.primaryDark, colorScheme.surface],
               ),
             ),
             child: Column(
@@ -136,7 +184,7 @@ class _ProfileContent extends StatelessWidget {
             ),
           ),
 
-          // ── Name + About ────────────────────────────────────────────────
+          // ── Name + About + actions ──────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
             child: Column(
@@ -157,7 +205,7 @@ class _ProfileContent extends StatelessWidget {
                 ],
                 const SizedBox(height: 20),
 
-                // ── Edit profile button ────────────────────────────────
+                // ── Edit Profile button ──────────────────────────────
                 FilledButton.icon(
                   onPressed: () =>
                       context.push(RouteNames.editProfile, extra: profile),
@@ -180,10 +228,7 @@ class _ProfileContent extends StatelessWidget {
                         ?.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    profile.bio!,
-                    style: theme.textTheme.bodyMedium,
-                  ),
+                  Text(profile.bio!, style: theme.textTheme.bodyMedium),
                   const SizedBox(height: 24),
                   const Divider(),
                   const SizedBox(height: 16),
@@ -195,7 +240,35 @@ class _ProfileContent extends StatelessWidget {
                   label: 'Member since',
                   value: _formatDate(profile.createdAt),
                 ),
+
                 const SizedBox(height: 32),
+                const Divider(),
+                const SizedBox(height: 16),
+
+                // ── Log out button ───────────────────────────────────
+                OutlinedButton.icon(
+                  onPressed: isSigningOut
+                      ? null
+                      : () => _confirmAndSignOut(context, ref),
+                  icon: isSigningOut
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colorScheme.error,
+                          ),
+                        )
+                      : const Icon(Icons.logout),
+                  label: Text(isSigningOut ? 'Logging out…' : 'Log out'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    foregroundColor: colorScheme.error,
+                    side: BorderSide(color: colorScheme.error),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -204,6 +277,10 @@ class _ProfileContent extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Shared widgets
+// ---------------------------------------------------------------------------
 
 class _InfoRow extends StatelessWidget {
   final IconData icon;

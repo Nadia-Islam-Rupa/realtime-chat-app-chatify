@@ -148,8 +148,9 @@ GoRouter appRouter(AppRouterRef ref) {
 
       // ── Authenticated on an auth route → check profile ───────────────────
       if (isOnAuthRoute) {
-        final hasProfile =
-            await ref.read(profileExistsProvider(user.id).future);
+        final hasProfile = await ref.read(
+          profileExistsProvider(user.id).future,
+        );
         return hasProfile ? RouteNames.chats : RouteNames.createProfile;
       }
 
@@ -160,8 +161,9 @@ GoRouter appRouter(AppRouterRef ref) {
 
       // ── Prevent re-entering /create-profile once profile exists ───────────
       if (location == RouteNames.createProfile) {
-        final hasProfile =
-            await ref.read(profileExistsProvider(user.id).future);
+        final hasProfile = await ref.read(
+          profileExistsProvider(user.id).future,
+        );
         if (hasProfile) return RouteNames.chats;
       }
 
@@ -173,17 +175,17 @@ GoRouter appRouter(AppRouterRef ref) {
       GoRoute(
         path: RouteNames.signIn,
         name: 'signIn',
-        builder: (context, state) => const SignInScreen(),
+        builder: (_, s) => const SignInScreen(),
       ),
       GoRoute(
         path: RouteNames.signUp,
         name: 'signUp',
-        builder: (context, state) => const SignUpScreen(),
+        builder: (_, s) => const SignUpScreen(),
       ),
       GoRoute(
         path: RouteNames.createProfile,
         name: 'createProfile',
-        builder: (context, state) => const CreateProfileScreen(),
+        builder: (_, s) => const CreateProfileScreen(),
       ),
 
       // ── Shell: HomeShellScreen wraps the 4 tab sub-routes ─────────────────
@@ -198,14 +200,13 @@ GoRouter appRouter(AppRouterRef ref) {
       // but not rendered (it's ignored).  The active sub-route's sole purpose
       // is to keep the URL in sync with the tab so deep links and back-nav work.
       ShellRoute(
-        builder: (context, state, child) =>
-            HomeShellScreen(child: child),
+        builder: (context, state, child) => HomeShellScreen(child: child),
         routes: [
           // /home — redirects to /home/chats via the global guard above
           GoRoute(
             path: RouteNames.home,
             name: 'home',
-            redirect: (context, state) => RouteNames.chats,
+            redirect: (_, s) => RouteNames.chats,
           ),
 
           // Tab 0 — Chats
@@ -289,7 +290,7 @@ GoRouter appRouter(AppRouterRef ref) {
       GoRoute(
         path: RouteNames.settings,
         name: 'settings',
-        builder: (_, _s) => const _SettingsScreen(),
+        builder: (_, s) => const _SettingsScreen(),
       ),
 
       // /call/:callId

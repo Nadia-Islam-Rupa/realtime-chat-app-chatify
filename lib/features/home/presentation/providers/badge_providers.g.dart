@@ -1,16 +1,17 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-// ignore_for_file: deprecated_member_use
-
 part of 'badge_providers.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$unreadChatsCountHash() => r'unread_chats_count_placeholder_hash';
+String _$unreadChatsCountHash() => r'1136486baa0e1156ec086034a4c9575c33b4223a';
 
-/// See also [unreadChatsCount].
+/// Streams the number of conversations with unread messages for the
+/// current user.  Returns 0 until the chat data layer is implemented.
+///
+/// Copied from [unreadChatsCount].
 @ProviderFor(unreadChatsCount)
 final unreadChatsCountProvider = AutoDisposeStreamProvider<int>.internal(
   unreadChatsCount,
@@ -22,24 +23,30 @@ final unreadChatsCountProvider = AutoDisposeStreamProvider<int>.internal(
   allTransitiveDependencies: null,
 );
 
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
 typedef UnreadChatsCountRef = AutoDisposeStreamProviderRef<int>;
-
 String _$pendingFriendRequestCountHash() =>
-    r'pending_friend_request_count_placeholder_hash';
+    r'bc9bda552c8ef0d526e19ab77a604a71adf875fc';
 
-/// See also [pendingFriendRequestCount].
+/// Streams the number of pending incoming friend requests for the current user.
+/// Backed by [FriendsRepository.getPendingReceivedRequests] — updates live.
+///
+/// Copied from [pendingFriendRequestCount].
 @ProviderFor(pendingFriendRequestCount)
 final pendingFriendRequestCountProvider =
     AutoDisposeStreamProvider<int>.internal(
-  pendingFriendRequestCount,
-  name: r'pendingFriendRequestCountProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$pendingFriendRequestCountHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      pendingFriendRequestCount,
+      name: r'pendingFriendRequestCountProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$pendingFriendRequestCountHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
 typedef PendingFriendRequestCountRef = AutoDisposeStreamProviderRef<int>;
 // ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

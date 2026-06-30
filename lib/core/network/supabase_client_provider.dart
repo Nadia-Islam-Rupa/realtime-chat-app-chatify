@@ -6,24 +6,37 @@ part 'supabase_client_provider.g.dart';
 
 /// Initializes Supabase from environment variables loaded via flutter_dotenv.
 /// Call once in [main] before [runApp].
+///
+/// Safe to call multiple times (e.g. hot-restart in debug mode):
+/// - dotenv uses [mergeWith] so it won't throw FileNotFoundError on re-load.
+/// - Supabase.initialize is skipped if already initialized.
 Future<void> initSupabase() async {
-  // Load .env; mergeWith keeps any previously-loaded values so repeated
-  // calls (e.g. during hot-restart in debug mode) don't throw.
+  // mergeWith: {} prevents FileNotFoundError on hot-restart when dotenv
+  // is already populated from a previous load.
   await dotenv.load(fileName: '.env', mergeWith: {});
 
   final url = dotenv.env['SUPABASE_URL'];
   final anonKey = dotenv.env['SUPABASE_ANON_KEY'];
 
-  assert(url != null && url.isNotEmpty, 'SUPABASE_URL is missing from .env');
+  assert(
+    url != null && url.isNotEmpty,
+    'SUPABASE_URL is missing or empty in .env',
+  );
   assert(
     anonKey != null && anonKey.isNotEmpty,
-    'SUPABASE_ANON_KEY is missing from .env',
+    'SUPABASE_ANON_KEY is missing or empty in .env',
   );
 
-  await Supabase.initialize(
-    url: url!,
-    anonKey: anonKey!,
-  );
+  // Guard against double-initialization during hot-restart.
+  // Supabase.instance throws if not yet initialized, so we check via try/catch.
+  try {
+    Supabase.instance.client; // already initialized, nothing to do
+  } catch (_) {
+    await Supabase.initialize(
+      url: url!,
+      anonKey: anonKey!,
+    );
+  }
 }
 
 /// Exposes the initialized [SupabaseClient] as a Riverpod provider.

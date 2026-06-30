@@ -1,29 +1,29 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-// ignore_for_file: deprecated_member_use
-
 part of 'auth_remote_data_source.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$authRemoteDataSourceHash() => r'placeholder_hash';
+String _$authRemoteDataSourceHash() =>
+    r'53876ae9aba3236c3163b6edc75c1413a659f49a';
 
 /// See also [authRemoteDataSource].
 @ProviderFor(authRemoteDataSource)
 final authRemoteDataSourceProvider =
     AutoDisposeProvider<AuthRemoteDataSource>.internal(
-  authRemoteDataSource,
-  name: r'authRemoteDataSourceProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product')
+      authRemoteDataSource,
+      name: r'authRemoteDataSourceProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
           : _$authRemoteDataSourceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
 typedef AuthRemoteDataSourceRef = AutoDisposeProviderRef<AuthRemoteDataSource>;
 // ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

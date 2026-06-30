@@ -169,7 +169,6 @@ class ProfileViewScreen extends ConsumerWidget {
                         Expanded(
                           child: FilledButton.icon(
                             onPressed: () {
-                              // TODO: wire to chat module
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Chat coming soon'),
@@ -187,7 +186,6 @@ class ProfileViewScreen extends ConsumerWidget {
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () {
-                              // TODO: wire to friends module
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Friend request coming soon'),

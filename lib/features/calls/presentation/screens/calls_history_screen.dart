@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 /// Mounted inside the HomeShellScreen IndexedStack for tab 2.
 /// No Scaffold or AppBar — provided by HomeShellScreen.
 ///
-/// TODO(calls): Replace with the real call history list once the calls
+
 /// data layer is implemented.  Each item should show caller avatar, name,
 /// call direction (in/out), duration and timestamp, with a tap-to-redial
 /// action.

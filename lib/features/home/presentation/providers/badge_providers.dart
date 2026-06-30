@@ -29,7 +29,6 @@ Stream<int> unreadChatsCount(UnreadChatsCountRef ref) async* {
     return;
   }
 
-  // TODO(chat): Replace with the real unread-count stream from the chat
   // data source once it is implemented.
   //
   // Example when available:
@@ -50,8 +49,7 @@ Stream<int> unreadChatsCount(UnreadChatsCountRef ref) async* {
 /// Supabase realtime stream, so this updates live when requests arrive or
 /// are accepted/rejected.
 @riverpod
-Stream<int> pendingFriendRequestCount(
-    PendingFriendRequestCountRef ref) async* {
+Stream<int> pendingFriendRequestCount(PendingFriendRequestCountRef ref) async* {
   final authAsync = ref.watch(authStateProvider);
   final user = authAsync.valueOrNull;
   if (user == null) {
@@ -73,7 +71,5 @@ Stream<int> pendingFriendRequestCount(
       .from(AppConstants.friendRequestsTable)
       .stream(primaryKey: ['id'])
       .eq('receiver_id', user.id)
-      .map((rows) => rows
-          .where((r) => r['status'] == 'pending')
-          .length);
+      .map((rows) => rows.where((r) => r['status'] == 'pending').length);
 }

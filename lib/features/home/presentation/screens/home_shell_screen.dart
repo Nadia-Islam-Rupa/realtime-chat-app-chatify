@@ -32,8 +32,7 @@ class HomeShellScreen extends ConsumerWidget {
     final tabIndex = currentTab.index;
 
     // ── Badge counts ────────────────────────────────────────────────────────
-    final unreadChats =
-        ref.watch(unreadChatsCountProvider).valueOrNull ?? 0;
+    final unreadChats = ref.watch(unreadChatsCountProvider).valueOrNull ?? 0;
     final pendingRequests =
         ref.watch(pendingFriendRequestCountProvider).valueOrNull ?? 0;
 
@@ -50,10 +49,7 @@ class HomeShellScreen extends ConsumerWidget {
       appBar: _buildAppBar(context, ref, currentTab),
 
       // ── Tab content — IndexedStack preserves state ───────────────────────
-      body: IndexedStack(
-        index: tabIndex,
-        children: tabBodies,
-      ),
+      body: IndexedStack(index: tabIndex, children: tabBodies),
 
       // ── Bottom navigation bar ────────────────────────────────────────────
       bottomNavigationBar: NavigationBar(
@@ -157,7 +153,6 @@ class _ChatsAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.search),
           tooltip: 'Search conversations',
           onPressed: () {
-            // TODO(chat): open conversation search overlay
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Search coming soon'),
@@ -202,7 +197,6 @@ class _FriendsAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.person_search_outlined),
           tooltip: 'Find people',
           onPressed: () {
-            // TODO(friends): switch to Find People sub-tab
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Find people coming soon'),
@@ -226,10 +220,7 @@ class _CallsAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      automaticallyImplyLeading: false,
-      title: const Text('Calls'),
-    );
+    return AppBar(automaticallyImplyLeading: false, title: const Text('Calls'));
   }
 }
 
@@ -250,7 +241,6 @@ class _ProfileAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.settings_outlined),
           tooltip: 'Settings',
           onPressed: () {
-            // TODO(settings): context.push(RouteNames.settings)
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Settings coming soon'),

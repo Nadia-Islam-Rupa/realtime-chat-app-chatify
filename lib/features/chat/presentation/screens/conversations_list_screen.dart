@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 /// IndexedStack for tab 0.  It does NOT include its own Scaffold or AppBar —
 /// those are provided by HomeShellScreen.
 ///
-/// TODO(chat): Replace placeholder with the real conversations list once the
+
 /// chat data layer is implemented.
 class ConversationsListScreen extends StatelessWidget {
   const ConversationsListScreen({super.key});

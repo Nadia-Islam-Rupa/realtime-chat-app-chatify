@@ -6,6 +6,8 @@ abstract final class RouteNames {
   static const String createProfile = '/create-profile';
   static const String home = '/home';
   static const String chat = '/chat';
-  static const String profileView = '/profile-view';
+  // userId is passed as a path parameter: /profile/:userId
+  static const String profileView = '/profile/:userId';
+  static const String editProfile = '/edit-profile';
   static const String friendsList = '/friends-list';
 }

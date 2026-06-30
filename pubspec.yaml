@@ -33,6 +33,9 @@ dependencies:
   # Media
   image_picker: ^1.1.2
 
+  # Device info
+  device_info_plus: ^11.4.0
+
   # Functional programming / error handling
   dartz: ^0.10.1
   equatable: ^2.0.7

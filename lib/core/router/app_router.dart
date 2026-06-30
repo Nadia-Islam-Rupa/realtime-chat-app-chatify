@@ -1,6 +1,13 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/constants/app_constants.dart';
+import '../../core/network/supabase_client_provider.dart';
+import '../../features/auth/presentation/providers/auth_providers.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
 import '../../features/auth/presentation/screens/sign_up_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
@@ -13,11 +20,98 @@ import 'route_names.dart';
 
 part 'app_router.g.dart';
 
+// ---------------------------------------------------------------------------
+// Profile existence check
+// ---------------------------------------------------------------------------
+
+/// Returns [true] if the `profile` table has a row for [userId].
+/// Used by the router redirect to decide whether to send the user to
+/// /create-profile or /home after sign-in.
+@riverpod
+Future<bool> profileExists(ProfileExistsRef ref, String userId) async {
+  final client = ref.watch(supabaseClientProvider);
+  try {
+    final result = await client
+        .from(AppConstants.profilesTable)
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+    return result != null;
+  } catch (_) {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GoRouter refresh listenable backed by Supabase auth stream
+// ---------------------------------------------------------------------------
+
+/// A [ChangeNotifier] that notifies listeners whenever the Supabase auth
+/// session changes. Passed to [GoRouter.refreshListenable] so the router
+/// re-evaluates the redirect on every session event.
+class _SupabaseAuthNotifier with ChangeNotifier {
+  late final StreamSubscription<AuthState> _sub;
+
+  _SupabaseAuthNotifier(SupabaseClient client) {
+    _sub = client.auth.onAuthStateChange.listen((_) => notifyListeners());
+  }
+
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
+
 @riverpod
 GoRouter appRouter(AppRouterRef ref) {
+  final client = ref.watch(supabaseClientProvider);
+  final notifier = _SupabaseAuthNotifier(client);
+
+  // Dispose the notifier when the provider is disposed.
+  ref.onDispose(notifier.dispose);
+
   return GoRouter(
     initialLocation: RouteNames.splash,
     debugLogDiagnostics: true,
+    refreshListenable: notifier,
+    redirect: (context, state) async {
+      final authAsync = ref.read(authStateProvider);
+      final location = state.matchedLocation;
+
+      // While the auth stream hasn't emitted its first value, stay on splash.
+      if (authAsync.isLoading) {
+        return location == RouteNames.splash ? null : RouteNames.splash;
+      }
+
+      final user = authAsync.valueOrNull;
+      final isAuthenticated = user != null;
+
+      final isOnAuthRoute =
+          location == RouteNames.signIn || location == RouteNames.signUp;
+
+      // --- Not signed in ---
+      if (!isAuthenticated) {
+        // Allow splash and auth routes through; redirect everything else.
+        if (isOnAuthRoute || location == RouteNames.splash) return null;
+        return RouteNames.signIn;
+      }
+
+      // --- Signed in ---
+      if (location == RouteNames.splash || isOnAuthRoute) {
+        // Determine whether the user has a profile row.
+        final hasProfile = await ref.read(
+          profileExistsProvider(user.id).future,
+        );
+        return hasProfile ? RouteNames.home : RouteNames.createProfile;
+      }
+
+      return null; // allow all other navigation
+    },
     routes: [
       GoRoute(
         path: RouteNames.splash,

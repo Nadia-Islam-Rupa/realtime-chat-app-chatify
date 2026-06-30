@@ -8,6 +8,64 @@ part of 'app_router.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+String _$profileExistsHash() => r'placeholder_hash';
+
+/// See also [profileExists].
+@ProviderFor(profileExists)
+const profileExistsProvider = ProfileExistsFamily();
+
+class ProfileExistsFamily extends Family<AsyncValue<bool>> {
+  const ProfileExistsFamily();
+
+  ProfileExistsProvider call(String userId) {
+    return ProfileExistsProvider(userId);
+  }
+
+  @override
+  ProfileExistsProvider getProviderOverride(
+    covariant ProfileExistsProvider provider,
+  ) {
+    return call(provider.userId);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'profileExistsProvider';
+}
+
+class ProfileExistsProvider extends AutoDisposeFutureProvider<bool> {
+  ProfileExistsProvider(this.userId)
+      : super(
+          (ref) => profileExists(ref, userId),
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$profileExistsHash,
+        );
+
+  final String userId;
+
+  @override
+  bool operator ==(Object other) {
+    return other is ProfileExistsProvider && other.userId == userId;
+  }
+
+  @override
+  int get hashCode => userId.hashCode;
+}
+
+typedef ProfileExistsRef = AutoDisposeFutureProviderRef<bool>;
+
 String _$appRouterHash() => r'placeholder_hash';
 
 /// See also [appRouter].

@@ -21,10 +21,12 @@ Stream<Profile> profile(ProfileRef ref, String userId) {
   return ref
       .watch(profileRepositoryProvider)
       .getProfileStream(userId)
-      .map((either) => either.fold(
-            (failure) => throw Exception(failure.message),
-            (p) => p,
-          ));
+      .map(
+        (either) => either.fold(
+          (failure) => throw Exception(failure.message),
+          (p) => p,
+        ),
+      );
 }
 
 // ---------------------------------------------------------------------------
@@ -112,7 +114,9 @@ class CreateProfileNotifier extends _$CreateProfileNotifier {
       final failed = uploadResult.fold(
         (failure) {
           state = state.copyWith(
-              isSubmitting: false, errorMessage: failure.message);
+            isSubmitting: false,
+            errorMessage: failure.message,
+          );
           return true;
         },
         (url) {
@@ -123,24 +127,25 @@ class CreateProfileNotifier extends _$CreateProfileNotifier {
       if (failed) return false;
     }
 
-    final result = await CreateProfileUseCase(
-      ref.read(profileRepositoryProvider),
-    )(
-      Profile(
-        id: userId,
-        createdAt: DateTime.now(),
-        name: state.name.trim(),
-        imageUrl: imageUrl,
-        about: state.about.trim().isEmpty ? null : state.about.trim(),
-        bio: state.bio.trim().isEmpty ? null : state.bio.trim(),
-        isOnline: true,
-      ),
-    );
+    final result =
+        await CreateProfileUseCase(ref.read(profileRepositoryProvider))(
+          Profile(
+            id: userId,
+            createdAt: DateTime.now(),
+            name: state.name.trim(),
+            imageUrl: imageUrl,
+            about: state.about.trim().isEmpty ? null : state.about.trim(),
+            bio: state.bio.trim().isEmpty ? null : state.bio.trim(),
+            isOnline: true,
+          ),
+        );
 
     return result.fold(
       (failure) {
         state = state.copyWith(
-            isSubmitting: false, errorMessage: failure.message);
+          isSubmitting: false,
+          errorMessage: failure.message,
+        );
         return false;
       },
       (_) {
@@ -197,7 +202,9 @@ class EditProfileNotifier extends _$EditProfileNotifier {
       final failed = uploadResult.fold(
         (failure) {
           state = state.copyWith(
-              isSubmitting: false, errorMessage: failure.message);
+            isSubmitting: false,
+            errorMessage: failure.message,
+          );
           return true;
         },
         (url) {
@@ -208,21 +215,22 @@ class EditProfileNotifier extends _$EditProfileNotifier {
       if (failed) return false;
     }
 
-    final result = await UpdateProfileUseCase(
-      ref.read(profileRepositoryProvider),
-    )(
-      existing.copyWith(
-        name: state.name.trim(),
-        imageUrl: imageUrl,
-        about: state.about.trim().isEmpty ? null : state.about.trim(),
-        bio: state.bio.trim().isEmpty ? null : state.bio.trim(),
-      ),
-    );
+    final result =
+        await UpdateProfileUseCase(ref.read(profileRepositoryProvider))(
+          existing.copyWith(
+            name: state.name.trim(),
+            imageUrl: imageUrl,
+            about: state.about.trim().isEmpty ? null : state.about.trim(),
+            bio: state.bio.trim().isEmpty ? null : state.bio.trim(),
+          ),
+        );
 
     return result.fold(
       (failure) {
         state = state.copyWith(
-            isSubmitting: false, errorMessage: failure.message);
+          isSubmitting: false,
+          errorMessage: failure.message,
+        );
         return false;
       },
       (_) {

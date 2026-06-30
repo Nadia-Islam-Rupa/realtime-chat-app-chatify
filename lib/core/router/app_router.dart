@@ -94,6 +94,14 @@ GoRouter appRouter(AppRouterRef ref) {
         return hasProfile ? RouteNames.home : RouteNames.createProfile;
       }
 
+      // Prevent authenticated users who already have a profile
+      // from landing on /create-profile again
+      if (location == RouteNames.createProfile) {
+        final hasProfile =
+            await ref.read(profileExistsProvider(user.id).future);
+        if (hasProfile) return RouteNames.home;
+      }
+
       return null;
     },
     routes: [

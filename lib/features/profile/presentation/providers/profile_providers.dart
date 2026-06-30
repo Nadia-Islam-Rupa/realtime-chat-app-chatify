@@ -102,20 +102,26 @@ class CreateProfileNotifier extends _$CreateProfileNotifier {
   /// Uploads image (if picked) then creates the profile row.
   /// Returns [true] on success so the UI can navigate away.
   Future<bool> submit(String userId) async {
+    // Snapshot name/about/bio from current state at call time
+    final name = state.name.trim();
+    final about = state.about.trim();
+    final bio = state.bio.trim();
+    final pickedImage = state.pickedImage;
+
     state = state.copyWith(isSubmitting: true, clearError: true);
 
     String? imageUrl;
 
-    if (state.pickedImage != null) {
+    if (pickedImage != null) {
       final uploadResult = await UploadProfileImageUseCase(
         ref.read(profileRepositoryProvider),
-      )(state.pickedImage!, userId);
+      )(pickedImage, userId);
 
       final failed = uploadResult.fold(
         (failure) {
           state = state.copyWith(
             isSubmitting: false,
-            errorMessage: failure.message,
+            errorMessage: 'Image upload failed: ${failure.message}',
           );
           return true;
         },
@@ -132,10 +138,10 @@ class CreateProfileNotifier extends _$CreateProfileNotifier {
           Profile(
             id: userId,
             createdAt: DateTime.now(),
-            name: state.name.trim(),
+            name: name,
             imageUrl: imageUrl,
-            about: state.about.trim().isEmpty ? null : state.about.trim(),
-            bio: state.bio.trim().isEmpty ? null : state.bio.trim(),
+            about: about.isEmpty ? null : about,
+            bio: bio.isEmpty ? null : bio,
             isOnline: true,
           ),
         );

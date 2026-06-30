@@ -18,7 +18,7 @@ class ProfileModel extends Profile {
     return ProfileModel(
       id: map['id'] as String,
       createdAt: DateTime.parse(map['created_at'] as String),
-      name: map['name'] as String,
+      name: (map['name'] as String?) ?? '',        // nullable — empty string fallback
       imageUrl: map['image_url'] as String?,
       about: map['about'] as String?,
       bio: map['bio'] as String?,

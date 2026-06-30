@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -39,15 +40,22 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<ProfileModel> createProfile(ProfileModel model) async {
     try {
+      log('[ProfileDS] createProfile → upserting id=${model.id} name="${model.name}"');
+      // Use upsert so that if the row already exists (e.g. user tapped Finish
+      // twice, or a previous attempt partially succeeded), it updates instead
+      // of failing with a duplicate-key error.
       final data = await _client
           .from(AppConstants.profilesTable)
-          .insert(model.toMap())
+          .upsert(model.toMap())
           .select()
           .single();
+      log('[ProfileDS] createProfile → success: $data');
       return ProfileModel.fromMap(data);
     } on PostgrestException catch (e) {
+      log('[ProfileDS] createProfile → PostgrestException: ${e.message} code=${e.code}');
       throw ServerException(e.message);
-    } catch (e) {
+    } catch (e, st) {
+      log('[ProfileDS] createProfile → unknown error: $e', stackTrace: st);
       throw UnknownException(e.toString());
     }
   }
@@ -99,7 +107,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
           );
 
       final publicUrl = _client.storage.from(_bucket).getPublicUrl(path);
-      // Cache-bust so the new image is always fetched.
       return '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
     } on sb.StorageException catch (e) {
       throw StorageException(e.message);

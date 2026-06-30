@@ -85,27 +85,35 @@ class _CreateProfileScreenState extends ConsumerState<CreateProfileScreen> {
     }
 
     final userId = ref.read(authStateProvider).valueOrNull?.id;
-    if (userId == null) return;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Session expired. Please sign in again.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
     // Capture router before async gap
     final router = GoRouter.of(context);
 
     final notifier = ref.read(createProfileNotifierProvider.notifier);
 
-    // Push the latest text values into the notifier synchronously
-    // before calling submit so the state is fully up to date
+    // Set all values synchronously before submit reads state
     notifier.setName(name);
     notifier.setAbout(_aboutController.text.trim());
     notifier.setBio(_bioController.text.trim());
 
     final success = await notifier.submit(userId);
 
-    if (success && mounted) {
-      // Invalidate the profileExists cache so the router
-      // redirect won't send us back here on next evaluation
+    if (!mounted) return;
+    if (success) {
+      // Invalidate the profileExists cache so the router won't redirect back here
       ref.invalidate(profileExistsProvider(userId));
       router.go(RouteNames.home);
     }
+    // On failure, the notifier sets errorMessage → SnackBar via ref.listen
   }
 
   bool _canProceedStep2() => _nameController.text.trim().length >= 2;

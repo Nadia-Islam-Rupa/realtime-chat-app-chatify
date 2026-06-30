@@ -10,7 +10,6 @@ import '../../core/network/supabase_client_provider.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
 import '../../features/auth/presentation/screens/sign_up_screen.dart';
-import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/friends/presentation/screens/friends_list_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
@@ -72,21 +71,18 @@ GoRouter appRouter(AppRouterRef ref) {
   final client = ref.watch(supabaseClientProvider);
   final notifier = _SupabaseAuthNotifier(client);
 
-  // Dispose the notifier when the provider is disposed.
   ref.onDispose(notifier.dispose);
 
   return GoRouter(
-    initialLocation: RouteNames.splash,
+    initialLocation: RouteNames.signIn,
     debugLogDiagnostics: true,
     refreshListenable: notifier,
     redirect: (context, state) async {
       final authAsync = ref.read(authStateProvider);
       final location = state.matchedLocation;
 
-      // While the auth stream hasn't emitted its first value, stay on splash.
-      if (authAsync.isLoading) {
-        return location == RouteNames.splash ? null : RouteNames.splash;
-      }
+      // Auth stream still loading — stay on the current auth route.
+      if (authAsync.isLoading) return null;
 
       final user = authAsync.valueOrNull;
       final isAuthenticated = user != null;
@@ -96,28 +92,21 @@ GoRouter appRouter(AppRouterRef ref) {
 
       // --- Not signed in ---
       if (!isAuthenticated) {
-        // Allow splash and auth routes through; redirect everything else.
-        if (isOnAuthRoute || location == RouteNames.splash) return null;
+        if (isOnAuthRoute) return null;
         return RouteNames.signIn;
       }
 
       // --- Signed in ---
-      if (location == RouteNames.splash || isOnAuthRoute) {
-        // Determine whether the user has a profile row.
+      if (isOnAuthRoute) {
         final hasProfile = await ref.read(
           profileExistsProvider(user.id).future,
         );
         return hasProfile ? RouteNames.home : RouteNames.createProfile;
       }
 
-      return null; // allow all other navigation
+      return null;
     },
     routes: [
-      GoRoute(
-        path: RouteNames.splash,
-        name: 'splash',
-        builder: (context, state) => const SplashScreen(),
-      ),
       GoRoute(
         path: RouteNames.signIn,
         name: 'signIn',

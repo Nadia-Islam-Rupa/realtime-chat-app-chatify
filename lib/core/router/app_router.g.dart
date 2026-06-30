@@ -8,7 +8,7 @@ part of 'app_router.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$profileExistsHash() => r'placeholder_hash';
+String _$profileExistsHash() => r'profile_exists_placeholder_hash';
 
 /// See also [profileExists].
 @ProviderFor(profileExists)
@@ -66,15 +66,16 @@ class ProfileExistsProvider extends AutoDisposeFutureProvider<bool> {
 
 typedef ProfileExistsRef = AutoDisposeFutureProviderRef<bool>;
 
-String _$appRouterHash() => r'placeholder_hash';
+String _$appRouterHash() => r'app_router_placeholder_hash';
 
 /// See also [appRouter].
 @ProviderFor(appRouter)
 final appRouterProvider = AutoDisposeProvider<GoRouter>.internal(
   appRouter,
   name: r'appRouterProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$appRouterHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$appRouterHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );

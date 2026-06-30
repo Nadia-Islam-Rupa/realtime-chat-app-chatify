@@ -1,7 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../../core/error/failures.dart';
 import '../../../profile/domain/entities/profile.dart';
 import '../../data/repositories/friends_repository_impl.dart';
 import '../../domain/entities/friend.dart';
@@ -10,7 +8,6 @@ import '../../domain/usecases/accept_friend_request_use_case.dart';
 import '../../domain/usecases/cancel_friend_request_use_case.dart';
 import '../../domain/usecases/reject_friend_request_use_case.dart';
 import '../../domain/usecases/remove_friend_use_case.dart';
-import '../../domain/usecases/search_users_by_name_use_case.dart';
 import '../../domain/usecases/send_friend_request_use_case.dart';
 
 part 'friends_providers.g.dart';
@@ -24,10 +21,10 @@ Stream<List<Friend>> friendsList(FriendsListRef ref, String userId) {
   return ref
       .watch(friendsRepositoryProvider)
       .getFriendsList(userId)
-      .map((either) => either.fold(
-            (failure) => throw Exception(failure.message),
-            (list) => list,
-          ));
+      .map(
+        (either) =>
+            either.fold((f) => throw Exception(f.message), (list) => list),
+      );
 }
 
 // ---------------------------------------------------------------------------
@@ -36,14 +33,16 @@ Stream<List<Friend>> friendsList(FriendsListRef ref, String userId) {
 
 @riverpod
 Stream<List<FriendRequest>> pendingRequests(
-    PendingRequestsRef ref, String userId) {
+  PendingRequestsRef ref,
+  String userId,
+) {
   return ref
       .watch(friendsRepositoryProvider)
       .getPendingReceivedRequests(userId)
-      .map((either) => either.fold(
-            (failure) => throw Exception(failure.message),
-            (list) => list,
-          ));
+      .map(
+        (either) =>
+            either.fold((f) => throw Exception(f.message), (list) => list),
+      );
 }
 
 // ---------------------------------------------------------------------------
@@ -55,107 +54,140 @@ Stream<List<FriendRequest>> sentRequests(SentRequestsRef ref, String userId) {
   return ref
       .watch(friendsRepositoryProvider)
       .getSentRequests(userId)
-      .map((either) => either.fold(
-            (failure) => throw Exception(failure.message),
-            (list) => list,
-          ));
+      .map(
+        (either) =>
+            either.fold((f) => throw Exception(f.message), (list) => list),
+      );
 }
 
 // ---------------------------------------------------------------------------
-// 4. Search users notifier
+// 4. All users (for Find People tab — loads everyone on open)
 // ---------------------------------------------------------------------------
 
-class SearchState {
-  final String query;
-  final bool isLoading;
-  final List<Profile> results;
-  final String? error;
+@riverpod
+Future<List<Profile>> allUsers(AllUsersRef ref, String currentUserId) async {
+  final result = await ref
+      .watch(friendsRepositoryProvider)
+      .getAllUsers(currentUserId);
+  return result.fold((f) => throw Exception(f.message), (list) => list);
+}
 
-  const SearchState({
-    this.query = '',
-    this.isLoading = false,
-    this.results = const [],
-    this.error,
-  });
+// ---------------------------------------------------------------------------
+// 5. User relation — what is the relationship between me and [otherUserId]?
+// ---------------------------------------------------------------------------
 
-  SearchState copyWith({
-    String? query,
-    bool? isLoading,
-    List<Profile>? results,
-    String? error,
-    bool clearError = false,
-  }) {
-    return SearchState(
-      query: query ?? this.query,
-      isLoading: isLoading ?? this.isLoading,
-      results: results ?? this.results,
-      error: clearError ? null : (error ?? this.error),
+/// Describes the current relationship between the signed-in user and another.
+enum UserRelation {
+  none, // No connection — show "Add Friend"
+  requestSent, // I sent them a pending request — show "Requested" + cancel
+  requestReceived, // They sent me a pending request — show "Accept / Reject"
+  friends, // Already friends — show "Friends"
+}
+
+class RelationInfo {
+  final UserRelation relation;
+
+  /// The request ID, populated when relation is [requestSent] or [requestReceived].
+  final String? requestId;
+
+  const RelationInfo({required this.relation, this.requestId});
+}
+
+/// Computes [RelationInfo] for a given [otherUserId] by reading the live
+/// friends list, sent requests, and received requests already in the cache.
+@riverpod
+RelationInfo userRelation(
+  UserRelationRef ref,
+  String currentUserId,
+  String otherUserId,
+) {
+  // Check if already friends
+  final friendsAsync = ref.watch(friendsListProvider(currentUserId));
+  final isFriend =
+      friendsAsync.valueOrNull?.any((f) => f.friendId == otherUserId) ?? false;
+  if (isFriend) return const RelationInfo(relation: UserRelation.friends);
+
+  // Check if I sent them a pending request
+  final sentAsync = ref.watch(sentRequestsProvider(currentUserId));
+  final sentReq = sentAsync.valueOrNull
+      ?.where((r) => r.receiverId == otherUserId)
+      .firstOrNull;
+  if (sentReq != null) {
+    return RelationInfo(
+      relation: UserRelation.requestSent,
+      requestId: sentReq.id,
     );
   }
+
+  // Check if they sent me a pending request
+  final receivedAsync = ref.watch(pendingRequestsProvider(currentUserId));
+  final receivedReq = receivedAsync.valueOrNull
+      ?.where((r) => r.senderId == otherUserId)
+      .firstOrNull;
+  if (receivedReq != null) {
+    return RelationInfo(
+      relation: UserRelation.requestReceived,
+      requestId: receivedReq.id,
+    );
+  }
+
+  return const RelationInfo(relation: UserRelation.none);
+}
+
+// ---------------------------------------------------------------------------
+// 6. Find People search notifier
+//    Holds the current query string; actual filtering happens in the UI
+//    against the [allUsersProvider] list so there's no extra network call.
+// ---------------------------------------------------------------------------
+
+class FindPeopleState {
+  final String query;
+  const FindPeopleState({this.query = ''});
+  FindPeopleState withQuery(String q) => FindPeopleState(query: q.trim());
 }
 
 @riverpod
-class SearchUsersNotifier extends _$SearchUsersNotifier {
+class FindPeopleNotifier extends _$FindPeopleNotifier {
   @override
-  SearchState build() => const SearchState();
+  FindPeopleState build() => const FindPeopleState();
 
-  Future<void> search(String query) async {
-    final trimmed = query.trim();
-    state = state.copyWith(query: trimmed, clearError: true);
-
-    if (trimmed.isEmpty) {
-      state = state.copyWith(results: [], isLoading: false);
-      return;
-    }
-
-    state = state.copyWith(isLoading: true);
-
-    final currentUserId =
-        Supabase.instance.client.auth.currentUser?.id ?? '';
-
-    final result = await SearchUsersByNameUseCase(
-      ref.read(friendsRepositoryProvider),
-    )(trimmed, currentUserId);
-
-    result.fold(
-      (failure) => state =
-          state.copyWith(isLoading: false, error: failure.message),
-      (profiles) =>
-          state = state.copyWith(isLoading: false, results: profiles),
-    );
-  }
-
-  void clear() => state = const SearchState();
+  void setQuery(String q) => state = state.withQuery(q);
+  void clear() => state = const FindPeopleState();
 }
 
 // ---------------------------------------------------------------------------
-// 5. Friend action notifier (send / accept / reject / cancel / remove)
+// 7. Friend action notifier — per-user loading via a Set of in-flight IDs
 // ---------------------------------------------------------------------------
 
-/// Holds last action result so the UI can show feedback.
 class FriendActionState {
-  final bool isLoading;
+  /// Set of target user IDs (or request IDs) currently being actioned.
+  final Set<String> loadingIds;
   final String? error;
   final String? successMessage;
 
   const FriendActionState({
-    this.isLoading = false,
+    this.loadingIds = const {},
     this.error,
     this.successMessage,
   });
 
-  FriendActionState copyWith({
-    bool? isLoading,
+  bool isLoadingFor(String id) => loadingIds.contains(id);
+
+  FriendActionState _addLoading(String id) => FriendActionState(
+    loadingIds: {...loadingIds, id},
+    error: null,
+    successMessage: null,
+  );
+
+  FriendActionState _removeLoading(
+    String id, {
     String? error,
-    String? successMessage,
-    bool clear = false,
-  }) {
-    return FriendActionState(
-      isLoading: isLoading ?? this.isLoading,
-      error: clear ? null : (error ?? this.error),
-      successMessage: clear ? null : (successMessage ?? this.successMessage),
-    );
-  }
+    String? success,
+  }) => FriendActionState(
+    loadingIds: loadingIds.difference({id}),
+    error: error,
+    successMessage: success,
+  );
 }
 
 @riverpod
@@ -163,58 +195,99 @@ class FriendActionsNotifier extends _$FriendActionsNotifier {
   @override
   FriendActionState build() => const FriendActionState();
 
-  Future<bool> sendRequest(String receiverId) =>
-      _run(() => SendFriendRequestUseCase(ref.read(friendsRepositoryProvider))(
-            receiverId,
-          ).then(
-            (either) => either.fold(
-              (f) => throw Exception(f.message),
-              (_) => null,
-            ),
-          ), 'Friend request sent!');
+  /// Send a friend request to [receiverId].
+  Future<bool> sendRequest(String receiverId) async {
+    state = state._addLoading(receiverId);
+    final result = await SendFriendRequestUseCase(
+      ref.read(friendsRepositoryProvider),
+    )(receiverId);
+    return result.fold(
+      (f) {
+        state = state._removeLoading(receiverId, error: f.message);
+        return false;
+      },
+      (_) {
+        state = state._removeLoading(
+          receiverId,
+          success: 'Friend request sent!',
+        );
+        return true;
+      },
+    );
+  }
 
-  Future<bool> acceptRequest(String requestId) =>
-      _run(() => AcceptFriendRequestUseCase(
-            ref.read(friendsRepositoryProvider),
-          )(requestId).then((either) => either.fold(
-            (f) => throw Exception(f.message),
-            (_) => null,
-          )), 'Friend request accepted!');
+  /// Accept an incoming request. Use [requestId] for the action key.
+  Future<bool> acceptRequest(String requestId) async {
+    state = state._addLoading(requestId);
+    final result = await AcceptFriendRequestUseCase(
+      ref.read(friendsRepositoryProvider),
+    )(requestId);
+    return result.fold(
+      (f) {
+        state = state._removeLoading(requestId, error: f.message);
+        return false;
+      },
+      (_) {
+        state = state._removeLoading(
+          requestId,
+          success: 'Friend request accepted!',
+        );
+        return true;
+      },
+    );
+  }
 
-  Future<bool> rejectRequest(String requestId) =>
-      _run(() => RejectFriendRequestUseCase(
-            ref.read(friendsRepositoryProvider),
-          )(requestId).then((either) => either.fold(
-            (f) => throw Exception(f.message),
-            (_) => null,
-          )), 'Request rejected.');
+  /// Reject an incoming request.
+  Future<bool> rejectRequest(String requestId) async {
+    state = state._addLoading(requestId);
+    final result = await RejectFriendRequestUseCase(
+      ref.read(friendsRepositoryProvider),
+    )(requestId);
+    return result.fold(
+      (f) {
+        state = state._removeLoading(requestId, error: f.message);
+        return false;
+      },
+      (_) {
+        state = state._removeLoading(requestId, success: 'Request rejected.');
+        return true;
+      },
+    );
+  }
 
-  Future<bool> cancelRequest(String requestId) =>
-      _run(() => CancelFriendRequestUseCase(
-            ref.read(friendsRepositoryProvider),
-          )(requestId).then((either) => either.fold(
-            (f) => throw Exception(f.message),
-            (_) => null,
-          )), 'Request cancelled.');
+  /// Cancel a sent request. Use [requestId] as the loading key.
+  Future<bool> cancelRequest(String requestId) async {
+    state = state._addLoading(requestId);
+    final result = await CancelFriendRequestUseCase(
+      ref.read(friendsRepositoryProvider),
+    )(requestId);
+    return result.fold(
+      (f) {
+        state = state._removeLoading(requestId, error: f.message);
+        return false;
+      },
+      (_) {
+        state = state._removeLoading(requestId, success: 'Request cancelled.');
+        return true;
+      },
+    );
+  }
 
-  Future<bool> removeFriend(String friendId) =>
-      _run(() => RemoveFriendUseCase(
-            ref.read(friendsRepositoryProvider),
-          )(friendId).then((either) => either.fold(
-            (f) => throw Exception(f.message),
-            (_) => null,
-          )), 'Friend removed.');
-
-  Future<bool> _run(Future<void> Function() action, String success) async {
-    state = state.copyWith(isLoading: true, clear: true);
-    try {
-      await action();
-      state = state.copyWith(isLoading: false, successMessage: success);
-      return true;
-    } catch (e) {
-      final msg = e is Failure ? e.message : e.toString();
-      state = state.copyWith(isLoading: false, error: msg);
-      return false;
-    }
+  /// Remove an existing friend. Use [friendId] as the loading key.
+  Future<bool> removeFriend(String friendId) async {
+    state = state._addLoading(friendId);
+    final result = await RemoveFriendUseCase(
+      ref.read(friendsRepositoryProvider),
+    )(friendId);
+    return result.fold(
+      (f) {
+        state = state._removeLoading(friendId, error: f.message);
+        return false;
+      },
+      (_) {
+        state = state._removeLoading(friendId, success: 'Friend removed.');
+        return true;
+      },
+    );
   }
 }

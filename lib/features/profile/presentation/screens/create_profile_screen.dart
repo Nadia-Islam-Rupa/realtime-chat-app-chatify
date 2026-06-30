@@ -113,7 +113,7 @@ class _CreateProfileScreenState extends ConsumerState<CreateProfileScreen> {
     if (!mounted) return;
     if (success) {
       ref.invalidate(profileExistsProvider(userId));
-      router.go(RouteNames.home);
+      router.go(RouteNames.chats);
     }
   }
 

@@ -10,12 +10,9 @@ import '../../../profile/presentation/providers/profile_providers.dart';
 import '../providers/friends_providers.dart';
 
 /// Friends tab body — three sub-tabs:
-///   0. My Friends  — live list of accepted friends
-///   1. Requests    — incoming pending requests (with badge)
-///   2. Find People — search all users and send requests
-///
-/// Mounted inside the HomeShellScreen IndexedStack for tab 1.
-/// No Scaffold or AppBar — provided by HomeShellScreen.
+///   0. My Friends   – live list of accepted friends
+///   1. Requests     – incoming pending requests (with badge count)
+///   2. Find People  – all users shown on open, filterable, smart action button
 class FriendsScreen extends ConsumerStatefulWidget {
   const FriendsScreen({super.key});
 
@@ -44,7 +41,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen>
     final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
     final colorScheme = Theme.of(context).colorScheme;
 
-    // Global action feedback
+    // Global snackbars for action feedback
     ref.listen(friendActionsNotifierProvider, (prev, next) {
       if (!mounted) return;
       if (next.successMessage != null &&
@@ -65,7 +62,6 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen>
 
     return Column(
       children: [
-        // ── Sub-tab bar ──────────────────────────────────────────────────
         ColoredBox(
           color: colorScheme.surface,
           child: TabBar(
@@ -77,14 +73,13 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen>
             ],
           ),
         ),
-        // ── Sub-tab bodies ───────────────────────────────────────────────
         Expanded(
           child: TabBarView(
             controller: _tabController,
             children: [
               _MyFriendsTab(userId: userId),
               _RequestsTab(userId: userId),
-              const _FindPeopleTab(),
+              _FindPeopleTab(currentUserId: userId),
             ],
           ),
         ),
@@ -94,7 +89,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen>
 }
 
 // ---------------------------------------------------------------------------
-// Requests tab label with live badge
+// Requests tab label — live badge
 // ---------------------------------------------------------------------------
 
 class _RequestsTabLabel extends ConsumerWidget {
@@ -146,9 +141,11 @@ class _MyFriendsTab extends ConsumerWidget {
         return ListView.separated(
           padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: friends.length,
-          separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
+          separatorBuilder: (context, index) =>
+              const Divider(height: 1, indent: 72),
           itemBuilder: (context, i) => _FriendTile(
             friendId: friends[i].friendId,
+            currentUserId: userId,
             onRemove: () => _confirmRemove(context, ref, friends[i].friendId),
           ),
         );
@@ -205,13 +202,14 @@ class _RequestsTab extends ConsumerWidget {
           return const _EmptyState(
             icon: Icons.mark_email_unread_outlined,
             title: 'No pending requests',
-            subtitle: 'When someone sends you a request it appears here',
+            subtitle: 'When someone sends you a request it will appear here',
           );
         }
         return ListView.separated(
           padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: requests.length,
-          separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
+          separatorBuilder: (context, index) =>
+              const Divider(height: 1, indent: 72),
           itemBuilder: (context, i) => _RequestTile(
             senderId: requests[i].senderId,
             requestId: requests[i].id,
@@ -227,7 +225,8 @@ class _RequestsTab extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 class _FindPeopleTab extends ConsumerStatefulWidget {
-  const _FindPeopleTab();
+  final String currentUserId;
+  const _FindPeopleTab({required this.currentUserId});
 
   @override
   ConsumerState<_FindPeopleTab> createState() => _FindPeopleTabState();
@@ -244,12 +243,15 @@ class _FindPeopleTabState extends ConsumerState<_FindPeopleTab> {
 
   @override
   Widget build(BuildContext context) {
-    final searchState = ref.watch(searchUsersNotifierProvider);
+    final query =
+        ref.watch(findPeopleNotifierProvider).query.toLowerCase();
+    final allUsersAsync =
+        ref.watch(allUsersProvider(widget.currentUserId));
     final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       children: [
-        // ── Search bar ───────────────────────────────────────────────────
+        // ── Search / filter bar ──────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: TextField(
@@ -264,7 +266,7 @@ class _FindPeopleTabState extends ConsumerState<_FindPeopleTab> {
                       onPressed: () {
                         _searchController.clear();
                         ref
-                            .read(searchUsersNotifierProvider.notifier)
+                            .read(findPeopleNotifierProvider.notifier)
                             .clear();
                         setState(() {});
                       },
@@ -278,65 +280,81 @@ class _FindPeopleTabState extends ConsumerState<_FindPeopleTab> {
               fillColor: colorScheme.surfaceContainerHighest,
             ),
             onChanged: (v) {
-              setState(() {}); // refresh clear button
-              ref.read(searchUsersNotifierProvider.notifier).search(v);
+              setState(() {}); // refresh clear button visibility
+              ref.read(findPeopleNotifierProvider.notifier).setQuery(v);
             },
           ),
         ),
 
-        // ── Results area ─────────────────────────────────────────────────
+        // ── User list ────────────────────────────────────────────────────
         Expanded(
-          child: _buildResults(searchState),
+          child: allUsersAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => _ErrorView(message: e.toString()),
+            data: (users) {
+              // Filter by query client-side
+              final filtered = query.isEmpty
+                  ? users
+                  : users
+                      .where((u) =>
+                          u.name.toLowerCase().contains(query) ||
+                          (u.about?.toLowerCase().contains(query) ?? false))
+                      .toList();
+
+              if (filtered.isEmpty) {
+                return _EmptyState(
+                  icon: query.isEmpty
+                      ? Icons.people_outline
+                      : Icons.search_off,
+                  title: query.isEmpty
+                      ? 'No other users yet'
+                      : 'No results for "$query"',
+                  subtitle: query.isEmpty
+                      ? 'Other users will appear here once they sign up'
+                      : 'Try a different name',
+                );
+              }
+
+              return ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: filtered.length,
+                separatorBuilder: (context, index) =>
+                    const Divider(height: 1, indent: 72),
+                itemBuilder: (context, i) => _FindPeopleTile(
+                  profile: filtered[i],
+                  currentUserId: widget.currentUserId,
+                ),
+              );
+            },
+          ),
         ),
       ],
-    );
-  }
-
-  Widget _buildResults(SearchState state) {
-    if (state.query.isEmpty) {
-      return const _EmptyState(
-        icon: Icons.person_search_outlined,
-        title: 'Find your friends',
-        subtitle: 'Search people by their display name',
-      );
-    }
-    if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (state.error != null) {
-      return _ErrorView(message: state.error!);
-    }
-    if (state.results.isEmpty) {
-      return const _EmptyState(
-        icon: Icons.search_off,
-        title: 'No users found',
-        subtitle: 'Try a different name',
-      );
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: state.results.length,
-      separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
-      itemBuilder: (context, i) =>
-          _SearchResultTile(profile: state.results[i]),
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// List tiles
+// Tiles
 // ---------------------------------------------------------------------------
 
-/// A friend tile that loads the friend's profile via the existing stream.
+/// My Friends tab tile — loads profile and shows remove option.
 class _FriendTile extends ConsumerWidget {
   final String friendId;
+  final String currentUserId;
   final VoidCallback onRemove;
 
-  const _FriendTile({required this.friendId, required this.onRemove});
+  const _FriendTile({
+    required this.friendId,
+    required this.currentUserId,
+    required this.onRemove,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileProvider(friendId));
+    final isLoading = ref
+        .watch(friendActionsNotifierProvider)
+        .isLoadingFor(friendId);
 
     return profileAsync.when(
       loading: () => const _LoadingTile(),
@@ -349,53 +367,59 @@ class _FriendTile extends ConsumerWidget {
             ? Text(profile.about!,
                 maxLines: 1, overflow: TextOverflow.ellipsis)
             : null,
-        trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert),
-          onSelected: (v) {
-            if (v == 'view') {
-              context.push(RouteNames.profileViewPath(profile.id));
-            } else if (v == 'remove') {
-              onRemove();
-            }
-          },
-          itemBuilder: (ctx) => const [
-            PopupMenuItem(
-              value: 'view',
-              child: ListTile(
-                dense: true,
-                leading: Icon(Icons.person_outline),
-                title: Text('View profile'),
-                contentPadding: EdgeInsets.zero,
+        trailing: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2))
+            : PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                onSelected: (v) {
+                  if (v == 'view') {
+                    context.push(RouteNames.profileViewPath(profile.id));
+                  } else if (v == 'remove') {
+                    onRemove();
+                  }
+                },
+                itemBuilder: (ctx) => const [
+                  PopupMenuItem(
+                    value: 'view',
+                    child: ListTile(
+                      dense: true,
+                      leading: Icon(Icons.person_outline),
+                      title: Text('View profile'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'remove',
+                    child: ListTile(
+                      dense: true,
+                      leading: Icon(Icons.person_remove_outlined),
+                      title: Text('Remove friend'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            PopupMenuItem(
-              value: 'remove',
-              child: ListTile(
-                dense: true,
-                leading: Icon(Icons.person_remove_outlined),
-                title: Text('Remove friend'),
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ],
-        ),
         onTap: () => context.push(RouteNames.profileViewPath(profile.id)),
       ),
     );
   }
 }
 
-/// Incoming request tile — shows sender's profile with Accept / Reject buttons.
+/// Incoming request tile with Accept / Reject.
 class _RequestTile extends ConsumerWidget {
   final String senderId;
   final String requestId;
-
   const _RequestTile({required this.senderId, required this.requestId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileProvider(senderId));
-    final isLoading = ref.watch(friendActionsNotifierProvider).isLoading;
+    final isLoading = ref
+        .watch(friendActionsNotifierProvider)
+        .isLoadingFor(requestId);
 
     return profileAsync.when(
       loading: () => const _LoadingTile(),
@@ -410,14 +434,12 @@ class _RequestTile extends ConsumerWidget {
             : null,
         trailing: isLoading
             ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2))
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Accept
                   IconButton(
                     icon: const Icon(Icons.check_circle_outline),
                     color: AppColors.online,
@@ -426,7 +448,6 @@ class _RequestTile extends ConsumerWidget {
                         .read(friendActionsNotifierProvider.notifier)
                         .acceptRequest(requestId),
                   ),
-                  // Reject
                   IconButton(
                     icon: const Icon(Icons.cancel_outlined),
                     color: Theme.of(context).colorScheme.error,
@@ -443,14 +464,23 @@ class _RequestTile extends ConsumerWidget {
   }
 }
 
-/// Search result tile — shows profile with an Add button.
-class _SearchResultTile extends ConsumerWidget {
+/// Find People tile — shows smart action button based on current relation.
+class _FindPeopleTile extends ConsumerWidget {
   final Profile profile;
-  const _SearchResultTile({required this.profile});
+  final String currentUserId;
+  const _FindPeopleTile(
+      {required this.profile, required this.currentUserId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isLoading = ref.watch(friendActionsNotifierProvider).isLoading;
+    final relation =
+        ref.watch(userRelationProvider(currentUserId, profile.id));
+    final actionState = ref.watch(friendActionsNotifierProvider);
+
+    // Loading key is either the profile ID (for sendRequest / removeFriend)
+    // or the requestId (for cancelRequest / accept / reject).
+    final loadingKey = relation.requestId ?? profile.id;
+    final isLoading = actionState.isLoadingFor(loadingKey);
 
     return ListTile(
       leading: _Avatar(imageUrl: profile.imageUrl, name: profile.name),
@@ -462,30 +492,133 @@ class _SearchResultTile extends ConsumerWidget {
           : null,
       trailing: isLoading
           ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : FilledButton.icon(
-              onPressed: () => ref
-                  .read(friendActionsNotifierProvider.notifier)
-                  .sendRequest(profile.id),
-              icon: const Icon(Icons.person_add_outlined, size: 16),
-              label: const Text('Add'),
-              style: FilledButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2))
+          : _RelationButton(
+              relation: relation,
+              profile: profile,
             ),
       onTap: () => context.push(RouteNames.profileViewPath(profile.id)),
     );
   }
 }
 
+/// The smart action button rendered based on [RelationInfo].
+class _RelationButton extends ConsumerWidget {
+  final RelationInfo relation;
+  final Profile profile;
+  const _RelationButton({required this.relation, required this.profile});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final notifier = ref.read(friendActionsNotifierProvider.notifier);
+
+    switch (relation.relation) {
+      // ── Already friends ─────────────────────────────────────────────
+      case UserRelation.friends:
+        return OutlinedButton.icon(
+          onPressed: null, // tap the tile to view profile; remove via My Friends
+          icon: const Icon(Icons.check, size: 16),
+          label: const Text('Friends'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.online,
+            side: BorderSide(color: AppColors.online.withValues(alpha: 0.5)),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        );
+
+      // ── I sent a request — show "Requested" + cancel option ─────────
+      case UserRelation.requestSent:
+        return OutlinedButton.icon(
+          onPressed: () async {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Cancel request?'),
+                content: Text(
+                    'Withdraw your friend request to ${profile.name}?'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('No')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Cancel request')),
+                ],
+              ),
+            );
+            if (confirmed == true && relation.requestId != null) {
+              notifier.cancelRequest(relation.requestId!);
+            }
+          },
+          icon: const Icon(Icons.hourglass_top_outlined, size: 16),
+          label: const Text('Requested'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        );
+
+      // ── They sent me a request — show Accept + Reject ───────────────
+      case UserRelation.requestReceived:
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Accept
+            FilledButton(
+              onPressed: relation.requestId == null
+                  ? null
+                  : () => notifier.acceptRequest(relation.requestId!),
+              style: FilledButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Accept'),
+            ),
+            const SizedBox(width: 6),
+            // Reject
+            OutlinedButton(
+              onPressed: relation.requestId == null
+                  ? null
+                  : () => notifier.rejectRequest(relation.requestId!),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colorScheme.error,
+                side: BorderSide(color: colorScheme.error),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Reject'),
+            ),
+          ],
+        );
+
+      // ── No relation — show Add Friend ───────────────────────────────
+      case UserRelation.none:
+        return FilledButton.icon(
+          onPressed: () => notifier.sendRequest(profile.id),
+          icon: const Icon(Icons.person_add_outlined, size: 16),
+          label: const Text('Add'),
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        );
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
-// Micro widgets
+// Shared micro-widgets
 // ---------------------------------------------------------------------------
 
 class _Avatar extends StatelessWidget {

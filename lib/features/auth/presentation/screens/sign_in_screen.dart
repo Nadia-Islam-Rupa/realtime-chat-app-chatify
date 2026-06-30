@@ -75,7 +75,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             .maybeSingle();
         if (!mounted) return;
         if (result != null) {
-          router.go(RouteNames.home);
+          router.go(RouteNames.chats);
         } else {
           router.go(RouteNames.createProfile);
         }

@@ -30,6 +30,8 @@ abstract class FriendsRemoteDataSource {
   Future<void> removeFriend(String userId, String friendId);
   Future<List<Profile>> searchUsersByName(
       String query, String currentUserId);
+  /// Returns every profile except [currentUserId], ordered by name.
+  Future<List<Profile>> getAllUsers(String currentUserId);
 }
 
 // ---------------------------------------------------------------------------
@@ -210,6 +212,27 @@ class FriendsRemoteDataSourceImpl implements FriendsRemoteDataSource {
           .ilike('name', '%$query%')
           .neq('id', currentUserId)
           .limit(30);
+      return (rows as List)
+          .map((r) => ProfileModel.fromMap(r as Map<String, dynamic>))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw UnknownException(e.toString());
+    }
+  }
+
+  // ── Get all users ─────────────────────────────────────────────────────────
+
+  @override
+  Future<List<Profile>> getAllUsers(String currentUserId) async {
+    try {
+      final rows = await _client
+          .from(AppConstants.profilesTable)
+          .select()
+          .neq('id', currentUserId)
+          .order('name', ascending: true)
+          .limit(200);
       return (rows as List)
           .map((r) => ProfileModel.fromMap(r as Map<String, dynamic>))
           .toList();

@@ -21,4 +21,5 @@ abstract class FriendsRepository {
   Future<Either<Failure, List<BlockedUser>>> getBlockedUsers(String userId);
   Future<Either<Failure, List<Profile>>> searchUsersByName(
       String query, String currentUserId);
+  Future<Either<Failure, List<Profile>>> getAllUsers(String currentUserId);
 }

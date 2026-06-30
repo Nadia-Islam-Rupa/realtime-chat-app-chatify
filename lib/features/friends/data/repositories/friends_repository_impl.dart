@@ -157,6 +157,20 @@ class FriendsRepositoryImpl implements FriendsRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, List<Profile>>> getAllUsers(
+    String currentUserId,
+  ) async {
+    try {
+      final results = await _ds.getAllUsers(currentUserId);
+      return Right(results);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
   // ── Helper ────────────────────────────────────────────────────────────────
 
   Failure _mapException(dynamic e) {

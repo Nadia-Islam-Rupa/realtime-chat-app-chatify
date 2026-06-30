@@ -65,7 +65,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<Either<Failure, String>> uploadProfileImage(
-      File image, String userId) async {
+    File image,
+    String userId,
+  ) async {
     try {
       final url = await _dataSource.uploadProfileImage(image, userId);
       return Right(url);
@@ -99,15 +101,16 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Stream<Either<Failure, Profile>> getProfileStream(String userId) {
-    return _dataSource.getProfileStream(userId).map<Either<Failure, Profile>>(
-      (model) => Right(model.toEntity()),
-    ).handleError(
-      (e) => Left(
-        e is NotFoundException
-            ? NotFoundFailure(e.message)
-            : UnknownFailure(e.toString()),
-      ),
-    );
+    return _dataSource
+        .getProfileStream(userId)
+        .map<Either<Failure, Profile>>((model) => Right(model.toEntity()))
+        .handleError(
+          (e) => Left(
+            e is NotFoundException
+                ? NotFoundFailure(e.message)
+                : UnknownFailure(e.toString()),
+          ),
+        );
   }
 }
 

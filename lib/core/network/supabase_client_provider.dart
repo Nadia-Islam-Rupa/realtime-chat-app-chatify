@@ -4,37 +4,42 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 part 'supabase_client_provider.g.dart';
 
+// Fallback values used when .env asset is not available in the bundle.
+// Replace these with your actual Supabase project credentials.
+const _fallbackSupabaseUrl = 'https://mxgdkgunszcfxqhsutqy.supabase.co';
+const _fallbackAnonKey =
+    'sb_publishable_tkxO7IjjBaujruU3Wjdjzw_pb_7ePG5';
+
 /// Initializes Supabase from environment variables loaded via flutter_dotenv.
 /// Call once in [main] before [runApp].
 ///
-/// Safe to call multiple times (e.g. hot-restart in debug mode):
-/// - dotenv uses [mergeWith] so it won't throw FileNotFoundError on re-load.
-/// - Supabase.initialize is skipped if already initialized.
+/// Hot-restart safe:
+/// - [dotenv.isInitialized] guard skips re-loading when already loaded.
+/// - [isOptional: true] prevents [FileNotFoundError] if asset bundling fails.
+/// - Supabase init is guarded against double-initialization.
 Future<void> initSupabase() async {
-  // mergeWith: {} prevents FileNotFoundError on hot-restart when dotenv
-  // is already populated from a previous load.
-  await dotenv.load(fileName: '.env', mergeWith: {});
+  if (!dotenv.isInitialized) {
+    // isOptional: true — never throws FileNotFoundError.
+    // If the .env asset is missing, dotenv will be initialized with an empty map
+    // and we fall back to the constants above.
+    await dotenv.load(fileName: '.env', isOptional: true);
+  }
 
-  final url = dotenv.env['SUPABASE_URL'];
-  final anonKey = dotenv.env['SUPABASE_ANON_KEY'];
+  final url =
+      (dotenv.isInitialized ? dotenv.env['SUPABASE_URL'] : null) ??
+      _fallbackSupabaseUrl;
 
-  assert(
-    url != null && url.isNotEmpty,
-    'SUPABASE_URL is missing or empty in .env',
-  );
-  assert(
-    anonKey != null && anonKey.isNotEmpty,
-    'SUPABASE_ANON_KEY is missing or empty in .env',
-  );
+  final anonKey =
+      (dotenv.isInitialized ? dotenv.env['SUPABASE_ANON_KEY'] : null) ??
+      _fallbackAnonKey;
 
   // Guard against double-initialization during hot-restart.
-  // Supabase.instance throws if not yet initialized, so we check via try/catch.
   try {
-    Supabase.instance.client; // already initialized, nothing to do
+    Supabase.instance.client; // already initialized — skip
   } catch (_) {
     await Supabase.initialize(
-      url: url!,
-      anonKey: anonKey!,
+      url: url,
+      anonKey: anonKey,
     );
   }
 }

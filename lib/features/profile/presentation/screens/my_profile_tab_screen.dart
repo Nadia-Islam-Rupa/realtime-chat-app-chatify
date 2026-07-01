@@ -133,10 +133,12 @@ class _ProfileContent extends ConsumerWidget {
     });
 
     // Header gradient colors based on current theme
-    final gradientTop =
-        isDark ? AppColors.backgroundDark : AppColors.primaryDark;
-    final gradientBottom =
-        isDark ? AppColors.surfaceDark : colorScheme.surface;
+    final gradientTop = isDark
+        ? AppColors.backgroundDark
+        : const Color(0xFF6B3FA0); // medium purple — visible but not black
+    final gradientBottom = isDark
+        ? AppColors.surfaceDark
+        : AppColors.lightBg;
 
     return SingleChildScrollView(
       child: Column(
@@ -345,15 +347,45 @@ class _DarkModeToggleTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isLightMode = theme.brightness == Brightness.light;
+
+    // In light mode: icon bg is a soft lavender so it stands out on white.
+    // In dark mode: icon bg is the deep indigo used elsewhere in dark UI.
+    final iconBg = isLightMode
+        ? const Color(0xFFEDE9FF)
+        : const Color(0xFF3730A3);
+
+    final iconColor = isLightMode
+        ? AppColors.primary
+        : AppColors.primaryDarkMode;
+
+    // Container background:
+    // Light — white card with a visible violet border.
+    // Dark  — semi-transparent surface card (existing behavior).
+    final tileBg = isLightMode
+        ? AppColors.lightSurface
+        : colorScheme.surfaceContainerHighest;
+
+    final borderColor = isLightMode
+        ? AppColors.lightDivider
+        : colorScheme.outline.withAlpha(80);
+
+    // Track colors that are clearly distinguishable in both modes:
+    // Light inactive — solid light gray so it's visible on white.
+    // Dark  inactive — semi-transparent violet tint.
+    final activeTrack   = AppColors.primary;
+    final inactiveTrack = isLightMode
+        ? const Color(0xFFE0E0E0)
+        : const Color(0x448B5CF6);
+    final inactiveThumb = isLightMode
+        ? const Color(0xFF9E9E9E)
+        : AppColors.textSecondary;
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
+        color: tileBg,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: colorScheme.outline.withAlpha(80),
-          width: 1.2,
-        ),
+        border: Border.all(color: borderColor, width: 1.2),
       ),
       child: SwitchListTile(
         contentPadding:
@@ -362,14 +394,12 @@ class _DarkModeToggleTile extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF3730A3)
-                : AppColors.primaryLight,
+            color: iconBg,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
             isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-            color: isDark ? AppColors.primaryDarkMode : AppColors.primary,
+            color: iconColor,
             size: 22,
           ),
         ),
@@ -386,9 +416,9 @@ class _DarkModeToggleTile extends StatelessWidget {
         value: isDark,
         onChanged: (_) => onToggle(),
         activeThumbColor: Colors.white,
-        inactiveThumbColor: AppColors.primary,
-        activeTrackColor: AppColors.primaryDarkMode,
-        inactiveTrackColor: AppColors.primaryLight,
+        inactiveThumbColor: inactiveThumb,
+        activeTrackColor: activeTrack,
+        inactiveTrackColor: inactiveTrack,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
         ),

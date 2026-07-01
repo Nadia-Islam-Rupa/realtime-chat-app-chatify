@@ -78,7 +78,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
           .maybeSingle();
 
       if (existing != null) {
-        return ConversationModel.fromMap(existing as Map<String, dynamic>);
+        return ConversationModel.fromMap(existing);
       }
 
       final created = await _client
@@ -89,7 +89,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
           })
           .select()
           .single();
-      return ConversationModel.fromMap(created as Map<String, dynamic>);
+      return ConversationModel.fromMap(created);
     } on PostgrestException catch (e) {
       log('[ChatDS] getOrCreateConversation: ${e.message}');
       throw ServerException(e.message);
@@ -203,13 +203,15 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     final convIds = rows.map((r) => r['id'] as String).toList();
     List<Map<String, dynamic>> unreadRows = [];
     if (convIds.isNotEmpty) {
-      unreadRows = ((await _client
-                  .from(AppConstants.messagesTable)
-                  .select('conversation_id')
-                  .inFilter('conversation_id', convIds)
-                  .eq('is_read', false)
-                  .neq('sender_id', userId)) as List)
-          .cast<Map<String, dynamic>>();
+      unreadRows =
+          ((await _client
+                      .from(AppConstants.messagesTable)
+                      .select('conversation_id')
+                      .inFilter('conversation_id', convIds)
+                      .eq('is_read', false)
+                      .neq('sender_id', userId))
+                  as List)
+              .cast<Map<String, dynamic>>();
     }
 
     final unreadCountMap = <String, int>{};
@@ -314,14 +316,18 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
           .select()
           .single();
 
-      final message = MessageModel.fromMap(msgRow as Map<String, dynamic>);
+      final message = MessageModel.fromMap(msgRow);
 
-      await _client.from(AppConstants.conversationsTable).update({
-        'last_message':
-            (mediaUrl != null && content.isEmpty) ? '📷 Photo' : content,
-        'last_message_at': message.createdAt.toIso8601String(),
-        'last_message_by': senderId,
-      }).eq('id', conversationId);
+      await _client
+          .from(AppConstants.conversationsTable)
+          .update({
+            'last_message': (mediaUrl != null && content.isEmpty)
+                ? '📷 Photo'
+                : content,
+            'last_message_at': message.createdAt.toIso8601String(),
+            'last_message_by': senderId,
+          })
+          .eq('id', conversationId);
 
       return message;
     } on PostgrestException catch (e) {
@@ -335,8 +341,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   // ── markMessagesAsRead ────────────────────────────────────────────────────
 
   @override
-  Future<void> markMessagesAsRead(
-      String conversationId, String userId) async {
+  Future<void> markMessagesAsRead(String conversationId, String userId) async {
     try {
       await _client
           .from(AppConstants.messagesTable)
@@ -360,15 +365,12 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     required bool isTyping,
   }) async {
     try {
-      await _client.from(AppConstants.typingStatusTable).upsert(
-        {
-          'conversation_id': conversationId,
-          'user_id': userId,
-          'is_typing': isTyping,
-          'updated_at': DateTime.now().toIso8601String(),
-        },
-        onConflict: 'conversation_id,user_id',
-      );
+      await _client.from(AppConstants.typingStatusTable).upsert({
+        'conversation_id': conversationId,
+        'user_id': userId,
+        'is_typing': isTyping,
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'conversation_id,user_id');
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
     } catch (e) {

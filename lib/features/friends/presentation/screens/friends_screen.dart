@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,17 +49,21 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen>
       if (!mounted) return;
       if (next.successMessage != null &&
           next.successMessage != prev?.successMessage) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(next.successMessage!),
-          behavior: SnackBarBehavior.floating,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.successMessage!),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
       if (next.error != null && next.error != prev?.error) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(next.error!),
-          backgroundColor: colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error!),
+            backgroundColor: colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     });
 
@@ -155,7 +161,10 @@ class _MyFriendsTab extends ConsumerWidget {
   }
 
   Future<void> _confirmRemove(
-      BuildContext context, WidgetRef ref, String friendId) async {
+    BuildContext context,
+    WidgetRef ref,
+    String friendId,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -244,10 +253,8 @@ class _FindPeopleTabState extends ConsumerState<_FindPeopleTab> {
 
   @override
   Widget build(BuildContext context) {
-    final query =
-        ref.watch(findPeopleNotifierProvider).query.toLowerCase();
-    final allUsersAsync =
-        ref.watch(allUsersProvider(widget.currentUserId));
+    final query = ref.watch(findPeopleNotifierProvider).query.toLowerCase();
+    final allUsersAsync = ref.watch(allUsersProvider(widget.currentUserId));
     final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
@@ -266,9 +273,7 @@ class _FindPeopleTabState extends ConsumerState<_FindPeopleTab> {
                       icon: const Icon(Icons.clear),
                       onPressed: () {
                         _searchController.clear();
-                        ref
-                            .read(findPeopleNotifierProvider.notifier)
-                            .clear();
+                        ref.read(findPeopleNotifierProvider.notifier).clear();
                         setState(() {});
                       },
                     )
@@ -297,16 +302,16 @@ class _FindPeopleTabState extends ConsumerState<_FindPeopleTab> {
               final filtered = query.isEmpty
                   ? users
                   : users
-                      .where((u) =>
-                          u.name.toLowerCase().contains(query) ||
-                          (u.about?.toLowerCase().contains(query) ?? false))
-                      .toList();
+                        .where(
+                          (u) =>
+                              u.name.toLowerCase().contains(query) ||
+                              (u.about?.toLowerCase().contains(query) ?? false),
+                        )
+                        .toList();
 
               if (filtered.isEmpty) {
                 return _EmptyState(
-                  icon: query.isEmpty
-                      ? Icons.people_outline
-                      : Icons.search_off,
+                  icon: query.isEmpty ? Icons.people_outline : Icons.search_off,
                   title: query.isEmpty
                       ? 'No other users yet'
                       : 'No results for "$query"',
@@ -353,25 +358,28 @@ class _FriendTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileProvider(friendId));
-    final isLoading =
-        ref.watch(friendActionsNotifierProvider).isLoadingFor(friendId);
+    final isLoading = ref
+        .watch(friendActionsNotifierProvider)
+        .isLoadingFor(friendId);
 
     return profileAsync.when(
       loading: () => const _LoadingTile(),
       error: (e, st) => _FallbackTile(id: friendId),
       data: (profile) => ListTile(
         leading: _Avatar(imageUrl: profile.imageUrl, name: profile.name),
-        title: Text(profile.name,
-            style: const TextStyle(fontWeight: FontWeight.w500)),
+        title: Text(
+          profile.name,
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
         subtitle: (profile.about?.isNotEmpty ?? false)
-            ? Text(profile.about!,
-                maxLines: 1, overflow: TextOverflow.ellipsis)
+            ? Text(profile.about!, maxLines: 1, overflow: TextOverflow.ellipsis)
             : null,
         trailing: isLoading
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2))
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -435,17 +443,19 @@ class _RequestTile extends ConsumerWidget {
       error: (e, st) => _FallbackTile(id: senderId),
       data: (profile) => ListTile(
         leading: _Avatar(imageUrl: profile.imageUrl, name: profile.name),
-        title: Text(profile.name,
-            style: const TextStyle(fontWeight: FontWeight.w500)),
+        title: Text(
+          profile.name,
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
         subtitle: (profile.about?.isNotEmpty ?? false)
-            ? Text(profile.about!,
-                maxLines: 1, overflow: TextOverflow.ellipsis)
+            ? Text(profile.about!, maxLines: 1, overflow: TextOverflow.ellipsis)
             : null,
         trailing: isLoading
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2))
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -477,13 +487,11 @@ class _RequestTile extends ConsumerWidget {
 class _FindPeopleTile extends ConsumerWidget {
   final Profile profile;
   final String currentUserId;
-  const _FindPeopleTile(
-      {required this.profile, required this.currentUserId});
+  const _FindPeopleTile({required this.profile, required this.currentUserId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final relation =
-        ref.watch(userRelationProvider(currentUserId, profile.id));
+    final relation = ref.watch(userRelationProvider(currentUserId, profile.id));
     final actionState = ref.watch(friendActionsNotifierProvider);
 
     final loadingKey = relation.requestId ?? profile.id;
@@ -491,24 +499,23 @@ class _FindPeopleTile extends ConsumerWidget {
 
     return ListTile(
       leading: _Avatar(imageUrl: profile.imageUrl, name: profile.name),
-      title: Text(profile.name,
-          style: const TextStyle(fontWeight: FontWeight.w500)),
+      title: Text(
+        profile.name,
+        style: const TextStyle(fontWeight: FontWeight.w500),
+      ),
       subtitle: (profile.about?.isNotEmpty ?? false)
-          ? Text(profile.about!,
-              maxLines: 1, overflow: TextOverflow.ellipsis)
+          ? Text(profile.about!, maxLines: 1, overflow: TextOverflow.ellipsis)
           : null,
       trailing: isLoading
           ? const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2))
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
           : relation.relation == UserRelation.friends
-              // Already friends — show a direct message button
-              ? _MessageIconButton(otherUserId: profile.id)
-              : _RelationButton(
-                  relation: relation,
-                  profile: profile,
-                ),
+          // Already friends — show a direct message button
+          ? _MessageIconButton(otherUserId: profile.id)
+          : _RelationButton(relation: relation, profile: profile),
       onTap: () => context.push(RouteNames.profileViewPath(profile.id)),
     );
   }
@@ -529,7 +536,8 @@ class _RelationButton extends ConsumerWidget {
       // ── Already friends ─────────────────────────────────────────────
       case UserRelation.friends:
         return OutlinedButton.icon(
-          onPressed: null, // tap the tile to view profile; remove via My Friends
+          onPressed:
+              null, // tap the tile to view profile; remove via My Friends
           icon: const Icon(Icons.check, size: 16),
           label: const Text('Friends'),
           style: OutlinedButton.styleFrom(
@@ -550,14 +558,17 @@ class _RelationButton extends ConsumerWidget {
               builder: (ctx) => AlertDialog(
                 title: const Text('Cancel request?'),
                 content: Text(
-                    'Withdraw your friend request to ${profile.name}?'),
+                  'Withdraw your friend request to ${profile.name}?',
+                ),
                 actions: [
                   TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('No')),
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('No'),
+                  ),
                   FilledButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Cancel request')),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('Cancel request'),
+                  ),
                 ],
               ),
             );
@@ -585,8 +596,10 @@ class _RelationButton extends ConsumerWidget {
                   ? null
                   : () => notifier.acceptRequest(relation.requestId!),
               style: FilledButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 0,
+                ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -601,8 +614,10 @@ class _RelationButton extends ConsumerWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: colorScheme.error,
                 side: BorderSide(color: colorScheme.error),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 0,
+                ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -636,8 +651,7 @@ class _MessageIconButton extends ConsumerStatefulWidget {
   const _MessageIconButton({required this.otherUserId});
 
   @override
-  ConsumerState<_MessageIconButton> createState() =>
-      _MessageIconButtonState();
+  ConsumerState<_MessageIconButton> createState() => _MessageIconButtonState();
 }
 
 class _MessageIconButtonState extends ConsumerState<_MessageIconButton> {
@@ -650,10 +664,7 @@ class _MessageIconButtonState extends ConsumerState<_MessageIconButton> {
         getOrCreateConversationProvider(widget.otherUserId).future,
       );
       if (!context.mounted) return;
-      context.push(
-        RouteNames.chatPath(conv.id),
-        extra: widget.otherUserId,
-      );
+      context.push(RouteNames.chatPath(conv.id), extra: widget.otherUserId);
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -699,13 +710,16 @@ class _Avatar extends StatelessWidget {
     if (imageUrl != null && imageUrl!.isNotEmpty) {
       return CircleAvatar(backgroundImage: NetworkImage(imageUrl!));
     }
-    final initial =
-        name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
+    final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
     return CircleAvatar(
       backgroundColor: AppColors.primaryLight,
-      child: Text(initial,
-          style: const TextStyle(
-              color: AppColors.primary, fontWeight: FontWeight.bold)),
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: AppColors.primary,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }
@@ -714,9 +728,9 @@ class _LoadingTile extends StatelessWidget {
   const _LoadingTile();
   @override
   Widget build(BuildContext context) => const ListTile(
-        leading: CircleAvatar(child: Icon(Icons.person)),
-        title: Text('Loading…'),
-      );
+    leading: CircleAvatar(child: Icon(Icons.person)),
+    title: Text('Loading…'),
+  );
 }
 
 class _FallbackTile extends StatelessWidget {
@@ -724,17 +738,20 @@ class _FallbackTile extends StatelessWidget {
   const _FallbackTile({required this.id});
   @override
   Widget build(BuildContext context) => ListTile(
-        leading: const CircleAvatar(child: Icon(Icons.person)),
-        title: Text(id),
-      );
+    leading: const CircleAvatar(child: Icon(Icons.person)),
+    title: Text(id),
+  );
 }
 
 class _EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  const _EmptyState(
-      {required this.icon, required this.title, required this.subtitle});
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -747,14 +764,20 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(icon, size: 64, color: theme.colorScheme.outlineVariant),
             const SizedBox(height: 16),
-            Text(title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant)),
+            Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(subtitle,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.outline)),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
+            ),
           ],
         ),
       ),
@@ -775,12 +798,13 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline,
-                size: 48, color: theme.colorScheme.error),
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 12),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium,
+            ),
           ],
         ),
       ),

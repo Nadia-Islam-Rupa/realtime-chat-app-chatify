@@ -5,15 +5,16 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../profile/domain/entities/profile.dart';
 import '../../../profile/presentation/providers/profile_providers.dart';
 import '../../domain/entities/message.dart';
 import '../providers/chat_providers.dart';
 
 /// Full chat screen.
 ///
-/// [conversationId] is the UUID of the conversation.
-/// [otherUserId]   is the other participant's user ID, used to load their
-///                 profile for the AppBar and to seed the typing indicator.
+/// [conversationId] — UUID of the conversation row.
+/// [otherUserId]    — The other participant's auth UID (used for the AppBar
+///                    profile and to filter typing-status events).
 class ChatScreen extends ConsumerStatefulWidget {
   final String conversationId;
   final String otherUserId;
@@ -37,7 +38,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    // Mark messages as read when the screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
           .read(markAsReadNotifierProvider(widget.conversationId).notifier)
@@ -47,7 +47,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   void dispose() {
-    // Clear typing status when leaving the screen
     ref
         .read(typingDebounceNotifierProvider(widget.conversationId).notifier)
         .clearTyping();
@@ -78,7 +77,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       maxWidth: 1200,
     );
     if (file == null) return;
-
     await ref
         .read(sendMessageNotifierProvider(widget.conversationId).notifier)
         .sendImage(file);
@@ -87,13 +85,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _sendText() async {
     final text = _textController.text;
     if (text.trim().isEmpty) return;
-
     _textController.clear();
-    // Immediately clear typing debounce
     ref
         .read(typingDebounceNotifierProvider(widget.conversationId).notifier)
         .clearTyping();
-
     await ref
         .read(sendMessageNotifierProvider(widget.conversationId).notifier)
         .sendText(text);
@@ -102,10 +97,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authStateProvider).valueOrNull;
+
+    // profileProvider streams Profile (non-nullable) — AsyncValue<Profile>
     final otherProfileAsync = ref.watch(profileProvider(widget.otherUserId));
 
-    // Mark as read whenever new messages arrive
-    ref.listen(messagesProvider(widget.conversationId), (_, next) {
+    // Auto-scroll + mark-read on new messages
+    ref.listen(messagesProvider(widget.conversationId), (previous, next) {
       if (next.hasValue) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _scrollToBottom();
@@ -120,7 +117,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       appBar: _buildAppBar(context, otherProfileAsync),
       body: Column(
         children: [
-          // ── Messages list ───────────────────────────────────────────────
           Expanded(
             child: _MessagesList(
               conversationId: widget.conversationId,
@@ -128,14 +124,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               scrollController: _scrollController,
             ),
           ),
-
-          // ── Typing indicator ────────────────────────────────────────────
           _TypingIndicator(
             conversationId: widget.conversationId,
             otherUserId: widget.otherUserId,
           ),
-
-          // ── Input bar ───────────────────────────────────────────────────
           _InputBar(
             controller: _textController,
             focusNode: _focusNode,
@@ -150,101 +142,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   PreferredSizeWidget _buildAppBar(
     BuildContext context,
-    AsyncValue otherProfileAsync,
+    // profileProvider gives AsyncValue<Profile> — Profile is non-nullable
+    AsyncValue<Profile> otherProfileAsync,
   ) {
     return AppBar(
       titleSpacing: 0,
       leading: BackButton(
         onPressed: () {
           ref
-              .read(
-                typingDebounceNotifierProvider(widget.conversationId).notifier,
-              )
+              .read(typingDebounceNotifierProvider(widget.conversationId)
+                  .notifier)
               .clearTyping();
           Navigator.of(context).pop();
         },
       ),
       title: otherProfileAsync.when(
-        loading: () => const SizedBox.shrink(),
-        error: (_, _) => const Text('Chat'),
-        data: (profile) {
-          if (profile == null) return const Text('Chat');
-          return Row(
-            children: [
-              // Avatar
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer,
-                    backgroundImage: profile.imageUrl != null
-                        ? NetworkImage(profile.imageUrl!)
-                        : null,
-                    child: profile.imageUrl == null
-                        ? Text(
-                            profile.name.isNotEmpty
-                                ? profile.name[0].toUpperCase()
-                                : '?',
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        : null,
-                  ),
-                  if (profile.isOnline)
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: AppColors.online,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Theme.of(context).scaffoldBackgroundColor,
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(width: 10),
-              // Name + status
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      profile.name,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      _statusText(profile.isOnline, profile.lastSeen),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: profile.isOnline
-                            ? AppColors.online
-                            : Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withAlpha(140),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
+        loading: () => const _AppBarSkeleton(),
+        // profile() stream can only error, not return null
+        error: (err, st) => const Text('Chat'),
+        data: (profile) => _AppBarProfile(
+          profile: profile,
+          onStatusText: _statusText,
+        ),
       ),
     );
   }
@@ -259,6 +178,120 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return 'Last seen ${DateFormat.MMMd().format(lastSeen)}';
     }
     return 'Offline';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// AppBar sub-widgets
+// ---------------------------------------------------------------------------
+
+class _AppBarSkeleton extends StatelessWidget {
+  const _AppBarSkeleton();
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 18,
+          backgroundColor:
+              Theme.of(context).colorScheme.surfaceContainerHighest,
+        ),
+        const SizedBox(width: 10),
+        Container(
+          width: 100,
+          height: 14,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(7),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AppBarProfile extends StatelessWidget {
+  final Profile profile;
+  final String Function(bool isOnline, DateTime? lastSeen) onStatusText;
+
+  const _AppBarProfile({required this.profile, required this.onStatusText});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Stack(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor:
+                  Theme.of(context).colorScheme.primaryContainer,
+              backgroundImage: profile.imageUrl != null
+                  ? NetworkImage(profile.imageUrl!)
+                  : null,
+              child: profile.imageUrl == null
+                  ? Text(
+                      profile.name.isNotEmpty
+                          ? profile.name[0].toUpperCase()
+                          : '?',
+                      style: TextStyle(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : null,
+            ),
+            if (profile.isOnline)
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: AppColors.online,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                profile.name,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                onStatusText(profile.isOnline, profile.lastSeen),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: profile.isOnline
+                          ? AppColors.online
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withAlpha(140),
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -283,8 +316,12 @@ class _MessagesList extends ConsumerWidget {
 
     return messagesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(
-        child: Text('Error: $e', style: const TextStyle(color: Colors.red)),
+      error: (e, st) => Center(
+        child: Text(
+          'Error loading messages:\n$e',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.red),
+        ),
       ),
       data: (messages) {
         if (messages.isEmpty) {
@@ -292,8 +329,11 @@ class _MessagesList extends ConsumerWidget {
             child: Text(
               'Say hello! 👋',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
-              ),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withAlpha(120),
+                  ),
             ),
           );
         }
@@ -305,11 +345,9 @@ class _MessagesList extends ConsumerWidget {
           itemBuilder: (context, index) {
             final message = messages[index];
             final isMine = message.senderId == currentUserId;
-
-            // Show date separator if this is the first message or a new day
-            final showDateSep =
-                index == 0 ||
-                !_isSameDay(messages[index - 1].createdAt, message.createdAt);
+            final showDateSep = index == 0 ||
+                !_isSameDay(
+                    messages[index - 1].createdAt, message.createdAt);
 
             return Column(
               children: [
@@ -338,7 +376,7 @@ class _DateSeparator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    String label;
+    final String label;
     if (_isSameDay(date, now)) {
       label = 'Today';
     } else if (_isSameDay(date, now.subtract(const Duration(days: 1)))) {
@@ -357,8 +395,11 @@ class _DateSeparator extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(140),
-              ),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withAlpha(140),
+                  ),
             ),
           ),
           const Expanded(child: Divider()),
@@ -416,7 +457,7 @@ class _MessageBubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── Media ──────────────────────────────────────────────────
+              // ── Image media ────────────────────────────────────────────
               if (message.hasMedia && message.mediaType == MediaType.image) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -424,13 +465,13 @@ class _MessageBubble extends StatelessWidget {
                     message.mediaUrl!,
                     fit: BoxFit.cover,
                     width: double.infinity,
-                    errorBuilder: (_, _, _) => Container(
+                    errorBuilder: (context, error, stackTrace) => Container(
                       width: 200,
                       height: 150,
                       color: theme.colorScheme.surfaceContainerHighest,
                       child: const Icon(Icons.broken_image, size: 40),
                     ),
-                    loadingBuilder: (_, child, progress) {
+                    loadingBuilder: (context, child, progress) {
                       if (progress == null) return child;
                       return Container(
                         width: 200,
@@ -446,30 +487,26 @@ class _MessageBubble extends StatelessWidget {
                 if (message.content != null && message.content!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(
-                      top: 6,
-                      left: 10,
-                      right: 10,
-                      bottom: 2,
-                    ),
+                        top: 6, left: 10, right: 10, bottom: 2),
                     child: Text(
                       message.content!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: textColor,
-                      ),
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: textColor),
                     ),
                   ),
               ],
 
-              // ── Text content ──────────────────────────────────────────
+              // ── Text content ───────────────────────────────────────────
               if (!message.hasMedia &&
                   message.content != null &&
                   message.content!.isNotEmpty)
                 Text(
                   message.content!,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
+                  style:
+                      theme.textTheme.bodyMedium?.copyWith(color: textColor),
                 ),
 
-              // ── Timestamp + read receipt ──────────────────────────────
+              // ── Timestamp + read tick ──────────────────────────────────
               Padding(
                 padding: message.hasMedia
                     ? const EdgeInsets.only(right: 8, bottom: 4)
@@ -522,10 +559,8 @@ class _TypingIndicator extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final typingAsync = ref.watch(typingStatusProvider(conversationId));
 
-    final isOtherTyping =
-        typingAsync.valueOrNull?.any(
-          (ts) => ts.userId == otherUserId && ts.isTyping,
-        ) ??
+    final isOtherTyping = typingAsync.valueOrNull
+            ?.any((ts) => ts.userId == otherUserId && ts.isTyping) ??
         false;
 
     if (!isOtherTyping) return const SizedBox.shrink();
@@ -534,14 +569,17 @@ class _TypingIndicator extends ConsumerWidget {
       padding: const EdgeInsets.only(left: 16, bottom: 4),
       child: Row(
         children: [
-          _TypingDots(),
+          const _TypingDots(),
           const SizedBox(width: 8),
           Text(
             'typing…',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withAlpha(160),
-              fontStyle: FontStyle.italic,
-            ),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withAlpha(160),
+                  fontStyle: FontStyle.italic,
+                ),
           ),
         ],
       ),
@@ -549,8 +587,9 @@ class _TypingIndicator extends ConsumerWidget {
   }
 }
 
-/// Animated three-dot typing indicator.
 class _TypingDots extends StatefulWidget {
+  const _TypingDots();
+
   @override
   State<_TypingDots> createState() => _TypingDotsState();
 }
@@ -582,15 +621,20 @@ class _TypingDotsState extends State<_TypingDots>
       height: 16,
       child: AnimatedBuilder(
         animation: _controller,
-        builder: (_, _) {
+        builder: (context, child) {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(3, (i) {
-              final phase = ((_controller.value * 3) - i).clamp(0.0, 1.0);
-              final scale = 0.5 + (phase < 0.5 ? phase : 1 - phase) * 1.0;
+              final phase =
+                  ((_controller.value * 3) - i).clamp(0.0, 1.0);
+              final scale =
+                  0.5 + (phase < 0.5 ? phase : 1 - phase) * 1.0;
               return Transform.scale(
                 scale: scale,
-                child: CircleAvatar(radius: 3.5, backgroundColor: color),
+                child: CircleAvatar(
+                  radius: 3.5,
+                  backgroundColor: color,
+                ),
               );
             }),
           );
@@ -641,7 +685,7 @@ class _InputBar extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            // Attach image button
+            // Image attach button
             IconButton(
               onPressed: sendState.isSending ? null : onPickImage,
               icon: const Icon(Icons.attach_file_rounded),
@@ -649,7 +693,7 @@ class _InputBar extends ConsumerWidget {
               color: theme.colorScheme.primary,
             ),
 
-            // Text input
+            // Text field
             Expanded(
               child: TextField(
                 controller: controller,
@@ -661,9 +705,8 @@ class _InputBar extends ConsumerWidget {
                 textCapitalization: TextCapitalization.sentences,
                 onChanged: (text) {
                   ref
-                      .read(
-                        typingDebounceNotifierProvider(conversationId).notifier,
-                      )
+                      .read(typingDebounceNotifierProvider(conversationId)
+                          .notifier)
                       .onTextChanged(text);
                 },
                 decoration: InputDecoration(
@@ -699,10 +742,10 @@ class _InputBar extends ConsumerWidget {
 
             const SizedBox(width: 6),
 
-            // Send button
+            // Send button — rebuilds only when controller text changes
             AnimatedBuilder(
               animation: controller,
-              builder: (_, _) {
+              builder: (context, child) {
                 final hasText = controller.text.trim().isNotEmpty;
                 return Container(
                   width: 44,

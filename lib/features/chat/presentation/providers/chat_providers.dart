@@ -22,65 +22,67 @@ part 'chat_providers.g.dart';
 // ---------------------------------------------------------------------------
 // 1. Conversations list stream
 // ---------------------------------------------------------------------------
+//
+// IMPORTANT: do NOT use async* / yield* here.
+// yield* would create a second subscription on top of the repository's
+// single-subscriber StreamController, which deadlocks — the inner controller
+// never calls onListen because it already has a subscriber from the first
+// yield*, so it never fires the initial fetch.
+//
+// Instead, we return the stream directly.  Riverpod's StreamProvider keeps
+// exactly one active listener, matching the single-subscriber contract.
 
-/// Streams the current user's conversation list ordered by last_message_at DESC.
-/// Each [Conversation] has the other participant's [Profile] populated.
 @riverpod
-Stream<List<Conversation>> conversations(ConversationsRef ref) async* {
+Stream<List<Conversation>> conversations(ConversationsRef ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) {
-    yield [];
-    return;
+    // Not logged in — return a stream that immediately emits an empty list
+    return Stream.value([]);
   }
 
-  yield* ref
+  return ref
       .watch(chatRepositoryProvider)
       .getConversationsList(user.id)
-      .map(
-        (either) =>
-            either.fold((f) => throw Exception(f.message), (list) => list),
-      );
+      .map((either) => either.fold(
+            (failure) => throw Exception(failure.message),
+            (list) => list,
+          ));
 }
 
 // ---------------------------------------------------------------------------
-// 2. Messages stream (family by conversationId)
+// 2. Messages stream (keyed by conversationId)
 // ---------------------------------------------------------------------------
 
-/// Streams all messages for a given [conversationId] ordered by created_at ASC.
 @riverpod
 Stream<List<Message>> messages(MessagesRef ref, String conversationId) {
   return ref
       .watch(chatRepositoryProvider)
       .getMessages(conversationId)
-      .map(
-        (either) =>
-            either.fold((f) => throw Exception(f.message), (list) => list),
-      );
+      .map((either) => either.fold(
+            (failure) => throw Exception(failure.message),
+            (list) => list,
+          ));
 }
 
 // ---------------------------------------------------------------------------
-// 3. Typing status stream (family by conversationId)
+// 3. Typing status stream (keyed by conversationId)
 // ---------------------------------------------------------------------------
 
-/// Streams the typing-status rows for [conversationId].
 @riverpod
 Stream<List<TypingStatus>> typingStatus(
-  TypingStatusRef ref,
-  String conversationId,
-) {
+    TypingStatusRef ref, String conversationId) {
   return GetTypingStatusUseCase(ref.watch(chatRepositoryProvider))(
-    conversationId,
-  ).map(
-    (either) => either.fold((f) => throw Exception(f.message), (list) => list),
-  );
+          conversationId)
+      .map((either) => either.fold(
+            (failure) => throw Exception(failure.message),
+            (list) => list,
+          ));
 }
 
 // ---------------------------------------------------------------------------
-// 4. GetOrCreateConversation — async action
+// 4. GetOrCreateConversation (cached async future per otherUserId)
 // ---------------------------------------------------------------------------
 
-/// Returns the conversation ID for a given [otherUserId], creating one if
-/// none exists.  The result is cached per [otherUserId].
 @riverpod
 Future<Conversation> getOrCreateConversation(
   GetOrCreateConversationRef ref,
@@ -89,21 +91,16 @@ Future<Conversation> getOrCreateConversation(
   final result = await GetOrCreateConversationUseCase(
     ref.watch(chatRepositoryProvider),
   )(otherUserId);
-  return result.fold((f) => throw Exception(f.message), (conv) => conv);
+  return result.fold(
+    (failure) => throw Exception(failure.message),
+    (conv) => conv,
+  );
 }
 
 // ---------------------------------------------------------------------------
-// 5. Typing debounce notifier
+// 5. Typing debounce notifier (keyed by conversationId)
 // ---------------------------------------------------------------------------
 
-/// Manages typing-indicator logic for a single conversation.
-///
-/// Call [onTextChanged] whenever the message TextField's [onChanged] fires.
-/// The notifier will:
-///   - Set is_typing = true immediately on first keystroke.
-///   - Reset the debounce timer on every keystroke.
-///   - Set is_typing = false after [_debounceDuration] of inactivity.
-///   - Clear is_typing on [dispose] (screen closed).
 @riverpod
 class TypingDebounceNotifier extends _$TypingDebounceNotifier {
   static const _debounceDuration = Duration(seconds: 3);
@@ -120,12 +117,10 @@ class TypingDebounceNotifier extends _$TypingDebounceNotifier {
     if (user == null) return;
 
     if (!state) {
-      // First keystroke — immediately report typing = true
       state = true;
       _setTyping(user.id, isTyping: true);
     }
 
-    // Reset debounce timer
     _timer?.cancel();
     _timer = Timer(_debounceDuration, () {
       if (_disposed) return;
@@ -134,16 +129,16 @@ class TypingDebounceNotifier extends _$TypingDebounceNotifier {
     });
   }
 
+  /// Call when the screen closes or the user hits send.
   void clearTyping() {
     if (_disposed) return;
-    final user = ref.read(authStateProvider).valueOrNull;
-    if (user == null) return;
+    _disposed = true;
     _timer?.cancel();
-    if (state) {
+    final user = ref.read(authStateProvider).valueOrNull;
+    if (user != null && state) {
       state = false;
       _setTyping(user.id, isTyping: false);
     }
-    _disposed = true;
   }
 
   Future<void> _setTyping(String userId, {required bool isTyping}) async {
@@ -157,7 +152,7 @@ class TypingDebounceNotifier extends _$TypingDebounceNotifier {
 }
 
 // ---------------------------------------------------------------------------
-// 6. SendMessage notifier
+// 6. SendMessage notifier (keyed by conversationId)
 // ---------------------------------------------------------------------------
 
 class SendMessageState {
@@ -188,7 +183,6 @@ class SendMessageNotifier extends _$SendMessageNotifier {
 
   Future<void> sendImage(XFile file) async {
     state = const SendMessageState(isSending: true);
-
     try {
       final client = ref.read(supabaseClientProvider);
       final userId = client.auth.currentUser?.id;
@@ -202,9 +196,7 @@ class SendMessageNotifier extends _$SendMessageNotifier {
       final path = '$userId/$fileName';
       final bytes = await file.readAsBytes();
 
-      await client.storage
-          .from(AppConstants.chatMediaBucket)
-          .uploadBinary(
+      await client.storage.from(AppConstants.chatMediaBucket).uploadBinary(
             path,
             bytes,
             fileOptions: const FileOptions(
@@ -235,7 +227,7 @@ class SendMessageNotifier extends _$SendMessageNotifier {
 }
 
 // ---------------------------------------------------------------------------
-// 7. MarkMessagesAsRead notifier
+// 7. MarkAsRead notifier (keyed by conversationId)
 // ---------------------------------------------------------------------------
 
 @riverpod

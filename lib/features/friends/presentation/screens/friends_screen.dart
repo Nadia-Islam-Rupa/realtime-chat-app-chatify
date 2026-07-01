@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../chat/presentation/providers/chat_providers.dart';
 import '../../../profile/domain/entities/profile.dart';
 import '../../../profile/presentation/providers/profile_providers.dart';
 import '../providers/friends_providers.dart';
@@ -337,7 +338,7 @@ class _FindPeopleTabState extends ConsumerState<_FindPeopleTab> {
 // Tiles
 // ---------------------------------------------------------------------------
 
-/// My Friends tab tile — loads profile and shows remove option.
+/// My Friends tab tile — loads profile, message shortcut, remove option.
 class _FriendTile extends ConsumerWidget {
   final String friendId;
   final String currentUserId;
@@ -352,9 +353,8 @@ class _FriendTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileProvider(friendId));
-    final isLoading = ref
-        .watch(friendActionsNotifierProvider)
-        .isLoadingFor(friendId);
+    final isLoading =
+        ref.watch(friendActionsNotifierProvider).isLoadingFor(friendId);
 
     return profileAsync.when(
       loading: () => const _LoadingTile(),
@@ -372,33 +372,42 @@ class _FriendTile extends ConsumerWidget {
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2))
-            : PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
-                onSelected: (v) {
-                  if (v == 'view') {
-                    context.push(RouteNames.profileViewPath(profile.id));
-                  } else if (v == 'remove') {
-                    onRemove();
-                  }
-                },
-                itemBuilder: (ctx) => const [
-                  PopupMenuItem(
-                    value: 'view',
-                    child: ListTile(
-                      dense: true,
-                      leading: Icon(Icons.person_outline),
-                      title: Text('View profile'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'remove',
-                    child: ListTile(
-                      dense: true,
-                      leading: Icon(Icons.person_remove_outlined),
-                      title: Text('Remove friend'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ── Direct message button ─────────────────────────
+                  _MessageIconButton(otherUserId: profile.id),
+
+                  // ── More options ──────────────────────────────────
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (v) {
+                      if (v == 'view') {
+                        context.push(RouteNames.profileViewPath(profile.id));
+                      } else if (v == 'remove') {
+                        onRemove();
+                      }
+                    },
+                    itemBuilder: (ctx) => const [
+                      PopupMenuItem(
+                        value: 'view',
+                        child: ListTile(
+                          dense: true,
+                          leading: Icon(Icons.person_outline),
+                          title: Text('View profile'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'remove',
+                        child: ListTile(
+                          dense: true,
+                          leading: Icon(Icons.person_remove_outlined),
+                          title: Text('Remove friend'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -477,8 +486,6 @@ class _FindPeopleTile extends ConsumerWidget {
         ref.watch(userRelationProvider(currentUserId, profile.id));
     final actionState = ref.watch(friendActionsNotifierProvider);
 
-    // Loading key is either the profile ID (for sendRequest / removeFriend)
-    // or the requestId (for cancelRequest / accept / reject).
     final loadingKey = relation.requestId ?? profile.id;
     final isLoading = actionState.isLoadingFor(loadingKey);
 
@@ -495,10 +502,13 @@ class _FindPeopleTile extends ConsumerWidget {
               width: 20,
               height: 20,
               child: CircularProgressIndicator(strokeWidth: 2))
-          : _RelationButton(
-              relation: relation,
-              profile: profile,
-            ),
+          : relation.relation == UserRelation.friends
+              // Already friends — show a direct message button
+              ? _MessageIconButton(otherUserId: profile.id)
+              : _RelationButton(
+                  relation: relation,
+                  profile: profile,
+                ),
       onTap: () => context.push(RouteNames.profileViewPath(profile.id)),
     );
   }
@@ -614,6 +624,64 @@ class _RelationButton extends ConsumerWidget {
           ),
         );
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Message icon button — opens or creates a conversation with a friend
+// ---------------------------------------------------------------------------
+
+class _MessageIconButton extends ConsumerStatefulWidget {
+  final String otherUserId;
+  const _MessageIconButton({required this.otherUserId});
+
+  @override
+  ConsumerState<_MessageIconButton> createState() =>
+      _MessageIconButtonState();
+}
+
+class _MessageIconButtonState extends ConsumerState<_MessageIconButton> {
+  bool _loading = false;
+
+  Future<void> _openChat() async {
+    setState(() => _loading = true);
+    try {
+      final conv = await ref.read(
+        getOrCreateConversationProvider(widget.otherUserId).future,
+      );
+      if (!context.mounted) return;
+      context.push(
+        RouteNames.chatPath(conv.id),
+        extra: widget.otherUserId,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not open chat: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _loading
+        ? const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : IconButton(
+            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            tooltip: 'Message',
+            color: Theme.of(context).colorScheme.primary,
+            onPressed: _openChat,
+          );
   }
 }
 

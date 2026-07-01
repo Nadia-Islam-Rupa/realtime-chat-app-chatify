@@ -17,8 +17,29 @@ class ConversationsListScreen extends ConsumerWidget {
 
     return conversationsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(
-        child: Text('Error: $e', style: const TextStyle(color: Colors.red)),
+      error: (e, st) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              'Failed to load chats',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              e.toString(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => ref.invalidate(conversationsProvider),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
       data: (conversations) {
         if (conversations.isEmpty) {
@@ -28,7 +49,8 @@ class ConversationsListScreen extends ConsumerWidget {
           onRefresh: () async => ref.invalidate(conversationsProvider),
           child: ListView.separated(
             itemCount: conversations.length,
-            separatorBuilder: (_, _) => const Divider(height: 1, indent: 72),
+            separatorBuilder: (context, index) =>
+                const Divider(height: 1, indent: 72),
             itemBuilder: (context, index) {
               return _ConversationTile(conversation: conversations[index]);
             },
@@ -74,11 +96,14 @@ class _ConversationTile extends ConsumerWidget {
       ),
       subtitle: Row(
         children: [
-          // If the last message was sent by the current user, show a checkmark
           if (conversation.lastMessageBy == user?.id)
             Padding(
               padding: const EdgeInsets.only(right: 4),
-              child: Icon(Icons.done_all, size: 14, color: colorScheme.primary),
+              child: Icon(
+                Icons.done_all,
+                size: 14,
+                color: colorScheme.primary,
+              ),
             ),
           Expanded(
             child: Text(
@@ -134,7 +159,10 @@ class _ConversationTile extends ConsumerWidget {
         final otherId = user != null
             ? conversation.otherUserId(user.id)
             : conversation.participantTwo;
-        context.push(RouteNames.chatPath(conversation.id), extra: otherId);
+        context.push(
+          RouteNames.chatPath(conversation.id),
+          extra: otherId,
+        );
       },
     );
   }
@@ -144,14 +172,10 @@ class _ConversationTile extends ConsumerWidget {
     final today = DateTime(now.year, now.month, now.day);
     final msgDay = DateTime(dt.year, dt.month, dt.day);
 
-    if (msgDay == today) {
-      return DateFormat.jm().format(dt);
-    } else if (today.difference(msgDay).inDays == 1) {
-      return 'Yesterday';
-    } else if (today.difference(msgDay).inDays < 7) {
-      return DateFormat.E().format(dt); // Mon, Tue …
-    }
-    return DateFormat.MMMd().format(dt); // Jan 5
+    if (msgDay == today) return DateFormat.jm().format(dt);
+    if (today.difference(msgDay).inDays == 1) return 'Yesterday';
+    if (today.difference(msgDay).inDays < 7) return DateFormat.E().format(dt);
+    return DateFormat.MMMd().format(dt);
   }
 }
 
@@ -177,7 +201,8 @@ class _Avatar extends StatelessWidget {
         CircleAvatar(
           radius: 26,
           backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          backgroundImage: imageUrl != null ? NetworkImage(imageUrl!) : null,
+          backgroundImage:
+              imageUrl != null ? NetworkImage(imageUrl!) : null,
           child: imageUrl == null
               ? Text(
                   name.isNotEmpty ? name[0].toUpperCase() : '?',
@@ -234,15 +259,15 @@ class _EmptyConversations extends StatelessWidget {
           Text(
             'No conversations yet',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: colorScheme.onSurface.withAlpha(180),
-            ),
+                  color: colorScheme.onSurface.withAlpha(180),
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Find friends and start chatting!',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurface.withAlpha(120),
-            ),
+                  color: colorScheme.onSurface.withAlpha(120),
+                ),
           ),
         ],
       ),

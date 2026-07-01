@@ -58,14 +58,9 @@ abstract class ChatRemoteDataSource {
 class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   final SupabaseClient _client;
 
-  // Realtime channel references (kept so they can be unsubscribed)
-  RealtimeChannel? _conversationsChannel;
-  RealtimeChannel? _messagesChannel;
-  RealtimeChannel? _typingChannel;
-
   ChatRemoteDataSourceImpl(this._client);
 
-  // ── Conversations: getOrCreateConversation ────────────────────────────────
+  // ── getOrCreateConversation ───────────────────────────────────────────────
 
   @override
   Future<Conversation> getOrCreateConversation(
@@ -73,7 +68,6 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     String otherUserId,
   ) async {
     try {
-      // Look for an existing conversation in either participant order
       final existing = await _client
           .from(AppConstants.conversationsTable)
           .select()
@@ -84,10 +78,9 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
           .maybeSingle();
 
       if (existing != null) {
-        return ConversationModel.fromMap(existing);
+        return ConversationModel.fromMap(existing as Map<String, dynamic>);
       }
 
-      // Create a new one
       final created = await _client
           .from(AppConstants.conversationsTable)
           .insert({
@@ -96,25 +89,29 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
           })
           .select()
           .single();
-      return ConversationModel.fromMap(created);
+      return ConversationModel.fromMap(created as Map<String, dynamic>);
     } on PostgrestException catch (e) {
-      log('[ChatDS] getOrCreateConversation error: ${e.message}');
+      log('[ChatDS] getOrCreateConversation: ${e.message}');
       throw ServerException(e.message);
     } catch (e) {
       throw UnknownException(e.toString());
     }
   }
 
-  // ── Conversations: real-time list ─────────────────────────────────────────
+  // ── getConversationsList — Realtime ───────────────────────────────────────
+  //
+  // KEY FIX: Use a plain (single-subscriber) StreamController, NOT broadcast.
+  // Riverpod's StreamProvider keeps a single listener alive; broadcast would
+  // miss the initial fetch event emitted before Riverpod subscribes.
 
   @override
   Stream<List<Conversation>> getConversationsList(String userId) {
-    // We use a StreamController so we can push updates from a Realtime channel
-    // AND do the initial fetch + profile join that Supabase's .stream() API
-    // can't do in one step.
-    final controller = StreamController<List<Conversation>>.broadcast();
+    // ignore: close_sinks  — closed in onCancel below
+    final controller = StreamController<List<Conversation>>();
+    RealtimeChannel? channel;
 
     Future<void> fetchAndEmit() async {
+      if (controller.isClosed) return;
       try {
         final rows = await _client
             .from(AppConstants.conversationsTable)
@@ -139,54 +136,52 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
       }
     }
 
-    // Initial load
-    fetchAndEmit();
+    controller.onListen = () {
+      // Fire initial fetch
+      fetchAndEmit();
 
-    // Subscribe to real-time changes
-    _conversationsChannel?.unsubscribe();
-    _conversationsChannel = _client
-        .channel('conversations_$userId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: AppConstants.conversationsTable,
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'participant_one',
-            value: userId,
-          ),
-          callback: (_) => fetchAndEmit(),
-        )
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: AppConstants.conversationsTable,
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'participant_two',
-            value: userId,
-          ),
-          callback: (_) => fetchAndEmit(),
-        )
-        .subscribe();
+      // Subscribe to Realtime changes and re-fetch on any change
+      channel = _client
+          .channel('conversations_$userId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: AppConstants.conversationsTable,
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'participant_one',
+              value: userId,
+            ),
+            callback: (_) => fetchAndEmit(),
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: AppConstants.conversationsTable,
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'participant_two',
+              value: userId,
+            ),
+            callback: (_) => fetchAndEmit(),
+          )
+          .subscribe();
+    };
 
     controller.onCancel = () {
-      _conversationsChannel?.unsubscribe();
-      _conversationsChannel = null;
+      channel?.unsubscribe();
+      controller.close();
     };
 
     return controller.stream;
   }
 
-  /// Fetches the other participant's [Profile] for each conversation and
-  /// computes the unread count.
   Future<List<Conversation>> _enrichConversations(
     List<Map<String, dynamic>> rows,
     String userId,
   ) async {
     if (rows.isEmpty) return [];
 
-    // Collect all "other" participant IDs in one batch query
     final otherIds = rows
         .map((r) {
           final p1 = r['participant_one'] as String;
@@ -205,19 +200,16 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         p['id'] as String: ProfileModel.fromMap(p),
     };
 
-    // Compute unread counts per conversation
     final convIds = rows.map((r) => r['id'] as String).toList();
     List<Map<String, dynamic>> unreadRows = [];
     if (convIds.isNotEmpty) {
-      unreadRows =
-          ((await _client
-                      .from(AppConstants.messagesTable)
-                      .select('conversation_id')
-                      .inFilter('conversation_id', convIds)
-                      .eq('is_read', false)
-                      .neq('sender_id', userId))
-                  as List)
-              .cast<Map<String, dynamic>>();
+      unreadRows = ((await _client
+                  .from(AppConstants.messagesTable)
+                  .select('conversation_id')
+                  .inFilter('conversation_id', convIds)
+                  .eq('is_read', false)
+                  .neq('sender_id', userId)) as List)
+          .cast<Map<String, dynamic>>();
     }
 
     final unreadCountMap = <String, int>{};
@@ -237,13 +229,16 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     }).toList();
   }
 
-  // ── Messages: real-time stream ────────────────────────────────────────────
+  // ── getMessages — Realtime ────────────────────────────────────────────────
 
   @override
   Stream<List<Message>> getMessages(String conversationId) {
-    final controller = StreamController<List<Message>>.broadcast();
+    // ignore: close_sinks
+    final controller = StreamController<List<Message>>();
+    RealtimeChannel? channel;
 
     Future<void> fetchAndEmit() async {
+      if (controller.isClosed) return;
       try {
         final rows = await _client
             .from(AppConstants.messagesTable)
@@ -268,33 +263,34 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
       }
     }
 
-    fetchAndEmit();
+    controller.onListen = () {
+      fetchAndEmit();
 
-    _messagesChannel?.unsubscribe();
-    _messagesChannel = _client
-        .channel('messages_$conversationId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: AppConstants.messagesTable,
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'conversation_id',
-            value: conversationId,
-          ),
-          callback: (_) => fetchAndEmit(),
-        )
-        .subscribe();
+      channel = _client
+          .channel('messages_$conversationId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: AppConstants.messagesTable,
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'conversation_id',
+              value: conversationId,
+            ),
+            callback: (_) => fetchAndEmit(),
+          )
+          .subscribe();
+    };
 
     controller.onCancel = () {
-      _messagesChannel?.unsubscribe();
-      _messagesChannel = null;
+      channel?.unsubscribe();
+      controller.close();
     };
 
     return controller.stream;
   }
 
-  // ── Send message ──────────────────────────────────────────────────────────
+  // ── sendMessage ───────────────────────────────────────────────────────────
 
   @override
   Future<Message> sendMessage(
@@ -305,7 +301,6 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     String? mediaType,
   }) async {
     try {
-      // 1. Insert the message
       final msgRow = await _client
           .from(AppConstants.messagesTable)
           .insert({
@@ -319,33 +314,29 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
           .select()
           .single();
 
-      final message = MessageModel.fromMap(msgRow);
+      final message = MessageModel.fromMap(msgRow as Map<String, dynamic>);
 
-      // 2. Update the conversation's last-message fields
-      await _client
-          .from(AppConstants.conversationsTable)
-          .update({
-            'last_message': mediaUrl != null && content.isEmpty
-                ? '📷 Photo'
-                : content,
-            'last_message_at': message.createdAt.toIso8601String(),
-            'last_message_by': senderId,
-          })
-          .eq('id', conversationId);
+      await _client.from(AppConstants.conversationsTable).update({
+        'last_message':
+            (mediaUrl != null && content.isEmpty) ? '📷 Photo' : content,
+        'last_message_at': message.createdAt.toIso8601String(),
+        'last_message_by': senderId,
+      }).eq('id', conversationId);
 
       return message;
     } on PostgrestException catch (e) {
-      log('[ChatDS] sendMessage error: ${e.message}');
+      log('[ChatDS] sendMessage: ${e.message}');
       throw ServerException(e.message);
     } catch (e) {
       throw UnknownException(e.toString());
     }
   }
 
-  // ── Mark messages as read ─────────────────────────────────────────────────
+  // ── markMessagesAsRead ────────────────────────────────────────────────────
 
   @override
-  Future<void> markMessagesAsRead(String conversationId, String userId) async {
+  Future<void> markMessagesAsRead(
+      String conversationId, String userId) async {
     try {
       await _client
           .from(AppConstants.messagesTable)
@@ -360,7 +351,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     }
   }
 
-  // ── Typing status ─────────────────────────────────────────────────────────
+  // ── setTypingStatus ───────────────────────────────────────────────────────
 
   @override
   Future<void> setTypingStatus(
@@ -369,12 +360,15 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     required bool isTyping,
   }) async {
     try {
-      await _client.from(AppConstants.typingStatusTable).upsert({
-        'conversation_id': conversationId,
-        'user_id': userId,
-        'is_typing': isTyping,
-        'updated_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'conversation_id,user_id');
+      await _client.from(AppConstants.typingStatusTable).upsert(
+        {
+          'conversation_id': conversationId,
+          'user_id': userId,
+          'is_typing': isTyping,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        onConflict: 'conversation_id,user_id',
+      );
     } on PostgrestException catch (e) {
       throw ServerException(e.message);
     } catch (e) {
@@ -382,11 +376,16 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     }
   }
 
+  // ── getTypingStatus — Realtime ────────────────────────────────────────────
+
   @override
   Stream<List<TypingStatus>> getTypingStatus(String conversationId) {
-    final controller = StreamController<List<TypingStatus>>.broadcast();
+    // ignore: close_sinks
+    final controller = StreamController<List<TypingStatus>>();
+    RealtimeChannel? channel;
 
     Future<void> fetchAndEmit() async {
+      if (controller.isClosed) return;
       try {
         final rows = await _client
             .from(AppConstants.typingStatusTable)
@@ -410,27 +409,28 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
       }
     }
 
-    fetchAndEmit();
+    controller.onListen = () {
+      fetchAndEmit();
 
-    _typingChannel?.unsubscribe();
-    _typingChannel = _client
-        .channel('typing_$conversationId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: AppConstants.typingStatusTable,
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'conversation_id',
-            value: conversationId,
-          ),
-          callback: (_) => fetchAndEmit(),
-        )
-        .subscribe();
+      channel = _client
+          .channel('typing_$conversationId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: AppConstants.typingStatusTable,
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'conversation_id',
+              value: conversationId,
+            ),
+            callback: (_) => fetchAndEmit(),
+          )
+          .subscribe();
+    };
 
     controller.onCancel = () {
-      _typingChannel?.unsubscribe();
-      _typingChannel = null;
+      channel?.unsubscribe();
+      controller.close();
     };
 
     return controller.stream;

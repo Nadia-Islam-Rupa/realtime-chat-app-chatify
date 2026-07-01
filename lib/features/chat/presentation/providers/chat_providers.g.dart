@@ -6,12 +6,9 @@ part of 'chat_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$conversationsHash() => r'f615900b72e0c633326cc2f7cd023d30a4d2138c';
+String _$conversationsHash() => r'f53536a0708e0d2b55dd3b7d124b97b73752ff06';
 
-/// Streams the current user's conversation list ordered by last_message_at DESC.
-/// Each [Conversation] has the other participant's [Profile] populated.
-///
-/// Copied from [conversations].
+/// See also [conversations].
 @ProviderFor(conversations)
 final conversationsProvider =
     AutoDisposeStreamProvider<List<Conversation>>.internal(
@@ -27,7 +24,7 @@ final conversationsProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ConversationsRef = AutoDisposeStreamProviderRef<List<Conversation>>;
-String _$messagesHash() => r'dd9b1ae06e2c69fc4f157751cb5ac9e01a926b8c';
+String _$messagesHash() => r'f5ae60a01650d34fd924ccfde3b23ea10bab2e94';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -50,24 +47,16 @@ class _SystemHash {
   }
 }
 
-/// Streams all messages for a given [conversationId] ordered by created_at ASC.
-///
-/// Copied from [messages].
+/// See also [messages].
 @ProviderFor(messages)
 const messagesProvider = MessagesFamily();
 
-/// Streams all messages for a given [conversationId] ordered by created_at ASC.
-///
-/// Copied from [messages].
+/// See also [messages].
 class MessagesFamily extends Family<AsyncValue<List<Message>>> {
-  /// Streams all messages for a given [conversationId] ordered by created_at ASC.
-  ///
-  /// Copied from [messages].
+  /// See also [messages].
   const MessagesFamily();
 
-  /// Streams all messages for a given [conversationId] ordered by created_at ASC.
-  ///
-  /// Copied from [messages].
+  /// See also [messages].
   MessagesProvider call(String conversationId) {
     return MessagesProvider(conversationId);
   }
@@ -92,13 +81,9 @@ class MessagesFamily extends Family<AsyncValue<List<Message>>> {
   String? get name => r'messagesProvider';
 }
 
-/// Streams all messages for a given [conversationId] ordered by created_at ASC.
-///
-/// Copied from [messages].
+/// See also [messages].
 class MessagesProvider extends AutoDisposeStreamProvider<List<Message>> {
-  /// Streams all messages for a given [conversationId] ordered by created_at ASC.
-  ///
-  /// Copied from [messages].
+  /// See also [messages].
   MessagesProvider(String conversationId)
     : this._internal(
         (ref) => messages(ref as MessagesRef, conversationId),
@@ -177,26 +162,18 @@ class _MessagesProviderElement
   String get conversationId => (origin as MessagesProvider).conversationId;
 }
 
-String _$typingStatusHash() => r'9b0eef6863963567a71ab2f0c58f67e64316fbd4';
+String _$typingStatusHash() => r'55b1d2076739f27e41b03614b7b07fd5f46f0bb6';
 
-/// Streams the typing-status rows for [conversationId].
-///
-/// Copied from [typingStatus].
+/// See also [typingStatus].
 @ProviderFor(typingStatus)
 const typingStatusProvider = TypingStatusFamily();
 
-/// Streams the typing-status rows for [conversationId].
-///
-/// Copied from [typingStatus].
+/// See also [typingStatus].
 class TypingStatusFamily extends Family<AsyncValue<List<TypingStatus>>> {
-  /// Streams the typing-status rows for [conversationId].
-  ///
-  /// Copied from [typingStatus].
+  /// See also [typingStatus].
   const TypingStatusFamily();
 
-  /// Streams the typing-status rows for [conversationId].
-  ///
-  /// Copied from [typingStatus].
+  /// See also [typingStatus].
   TypingStatusProvider call(String conversationId) {
     return TypingStatusProvider(conversationId);
   }
@@ -223,14 +200,10 @@ class TypingStatusFamily extends Family<AsyncValue<List<TypingStatus>>> {
   String? get name => r'typingStatusProvider';
 }
 
-/// Streams the typing-status rows for [conversationId].
-///
-/// Copied from [typingStatus].
+/// See also [typingStatus].
 class TypingStatusProvider
     extends AutoDisposeStreamProvider<List<TypingStatus>> {
-  /// Streams the typing-status rows for [conversationId].
-  ///
-  /// Copied from [typingStatus].
+  /// See also [typingStatus].
   TypingStatusProvider(String conversationId)
     : this._internal(
         (ref) => typingStatus(ref as TypingStatusRef, conversationId),
@@ -312,30 +285,18 @@ class _TypingStatusProviderElement
 }
 
 String _$getOrCreateConversationHash() =>
-    r'f94d89d95bed307b8aae9eec531a041eba263469';
+    r'0ebaf1515da874409056d67135556345efdb498d';
 
-/// Returns the conversation ID for a given [otherUserId], creating one if
-/// none exists.  The result is cached per [otherUserId].
-///
-/// Copied from [getOrCreateConversation].
+/// See also [getOrCreateConversation].
 @ProviderFor(getOrCreateConversation)
 const getOrCreateConversationProvider = GetOrCreateConversationFamily();
 
-/// Returns the conversation ID for a given [otherUserId], creating one if
-/// none exists.  The result is cached per [otherUserId].
-///
-/// Copied from [getOrCreateConversation].
+/// See also [getOrCreateConversation].
 class GetOrCreateConversationFamily extends Family<AsyncValue<Conversation>> {
-  /// Returns the conversation ID for a given [otherUserId], creating one if
-  /// none exists.  The result is cached per [otherUserId].
-  ///
-  /// Copied from [getOrCreateConversation].
+  /// See also [getOrCreateConversation].
   const GetOrCreateConversationFamily();
 
-  /// Returns the conversation ID for a given [otherUserId], creating one if
-  /// none exists.  The result is cached per [otherUserId].
-  ///
-  /// Copied from [getOrCreateConversation].
+  /// See also [getOrCreateConversation].
   GetOrCreateConversationProvider call(String otherUserId) {
     return GetOrCreateConversationProvider(otherUserId);
   }
@@ -362,16 +323,10 @@ class GetOrCreateConversationFamily extends Family<AsyncValue<Conversation>> {
   String? get name => r'getOrCreateConversationProvider';
 }
 
-/// Returns the conversation ID for a given [otherUserId], creating one if
-/// none exists.  The result is cached per [otherUserId].
-///
-/// Copied from [getOrCreateConversation].
+/// See also [getOrCreateConversation].
 class GetOrCreateConversationProvider
     extends AutoDisposeFutureProvider<Conversation> {
-  /// Returns the conversation ID for a given [otherUserId], creating one if
-  /// none exists.  The result is cached per [otherUserId].
-  ///
-  /// Copied from [getOrCreateConversation].
+  /// See also [getOrCreateConversation].
   GetOrCreateConversationProvider(String otherUserId)
     : this._internal(
         (ref) => getOrCreateConversation(
@@ -457,7 +412,7 @@ class _GetOrCreateConversationProviderElement
 }
 
 String _$typingDebounceNotifierHash() =>
-    r'7a615085a7c86533d24527c1e1bff66357a7c4a5';
+    r'779b437498800bdaed7d23193a59594df06ac739';
 
 abstract class _$TypingDebounceNotifier
     extends BuildlessAutoDisposeNotifier<bool> {
@@ -466,52 +421,16 @@ abstract class _$TypingDebounceNotifier
   bool build(String conversationId);
 }
 
-/// Manages typing-indicator logic for a single conversation.
-///
-/// Call [onTextChanged] whenever the message TextField's [onChanged] fires.
-/// The notifier will:
-///   - Set is_typing = true immediately on first keystroke.
-///   - Reset the debounce timer on every keystroke.
-///   - Set is_typing = false after [_debounceDuration] of inactivity.
-///   - Clear is_typing on [dispose] (screen closed).
-///
-/// Copied from [TypingDebounceNotifier].
+/// See also [TypingDebounceNotifier].
 @ProviderFor(TypingDebounceNotifier)
 const typingDebounceNotifierProvider = TypingDebounceNotifierFamily();
 
-/// Manages typing-indicator logic for a single conversation.
-///
-/// Call [onTextChanged] whenever the message TextField's [onChanged] fires.
-/// The notifier will:
-///   - Set is_typing = true immediately on first keystroke.
-///   - Reset the debounce timer on every keystroke.
-///   - Set is_typing = false after [_debounceDuration] of inactivity.
-///   - Clear is_typing on [dispose] (screen closed).
-///
-/// Copied from [TypingDebounceNotifier].
+/// See also [TypingDebounceNotifier].
 class TypingDebounceNotifierFamily extends Family<bool> {
-  /// Manages typing-indicator logic for a single conversation.
-  ///
-  /// Call [onTextChanged] whenever the message TextField's [onChanged] fires.
-  /// The notifier will:
-  ///   - Set is_typing = true immediately on first keystroke.
-  ///   - Reset the debounce timer on every keystroke.
-  ///   - Set is_typing = false after [_debounceDuration] of inactivity.
-  ///   - Clear is_typing on [dispose] (screen closed).
-  ///
-  /// Copied from [TypingDebounceNotifier].
+  /// See also [TypingDebounceNotifier].
   const TypingDebounceNotifierFamily();
 
-  /// Manages typing-indicator logic for a single conversation.
-  ///
-  /// Call [onTextChanged] whenever the message TextField's [onChanged] fires.
-  /// The notifier will:
-  ///   - Set is_typing = true immediately on first keystroke.
-  ///   - Reset the debounce timer on every keystroke.
-  ///   - Set is_typing = false after [_debounceDuration] of inactivity.
-  ///   - Clear is_typing on [dispose] (screen closed).
-  ///
-  /// Copied from [TypingDebounceNotifier].
+  /// See also [TypingDebounceNotifier].
   TypingDebounceNotifierProvider call(String conversationId) {
     return TypingDebounceNotifierProvider(conversationId);
   }
@@ -538,28 +457,10 @@ class TypingDebounceNotifierFamily extends Family<bool> {
   String? get name => r'typingDebounceNotifierProvider';
 }
 
-/// Manages typing-indicator logic for a single conversation.
-///
-/// Call [onTextChanged] whenever the message TextField's [onChanged] fires.
-/// The notifier will:
-///   - Set is_typing = true immediately on first keystroke.
-///   - Reset the debounce timer on every keystroke.
-///   - Set is_typing = false after [_debounceDuration] of inactivity.
-///   - Clear is_typing on [dispose] (screen closed).
-///
-/// Copied from [TypingDebounceNotifier].
+/// See also [TypingDebounceNotifier].
 class TypingDebounceNotifierProvider
     extends AutoDisposeNotifierProviderImpl<TypingDebounceNotifier, bool> {
-  /// Manages typing-indicator logic for a single conversation.
-  ///
-  /// Call [onTextChanged] whenever the message TextField's [onChanged] fires.
-  /// The notifier will:
-  ///   - Set is_typing = true immediately on first keystroke.
-  ///   - Reset the debounce timer on every keystroke.
-  ///   - Set is_typing = false after [_debounceDuration] of inactivity.
-  ///   - Clear is_typing on [dispose] (screen closed).
-  ///
-  /// Copied from [TypingDebounceNotifier].
+  /// See also [TypingDebounceNotifier].
   TypingDebounceNotifierProvider(String conversationId)
     : this._internal(
         () => TypingDebounceNotifier()..conversationId = conversationId,

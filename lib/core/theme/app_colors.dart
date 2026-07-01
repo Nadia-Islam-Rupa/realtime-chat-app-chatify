@@ -103,6 +103,23 @@ abstract final class AppColors {
   static const Color lightTextSec  = Color(0xFF6B5B8A);
   static const Color lightDivider  = Color(0xFFDDD6FE);
 
+  // ── Brightness-aware helpers ──────────────────────────────────────────────
+
+  /// Returns the dark gradient when the theme is dark, or a soft light-mode
+  /// gradient (lavender to white) when the theme is light.
+  /// Use this instead of [backgroundGradient] inside widget build() methods.
+  static LinearGradient backgroundGradientFor(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (isDark) {
+      return backgroundGradient;
+    }
+    return const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [lightBg, lightSurface],
+    );
+  }
+
   // ── Legacy compatibility aliases ─────────────────────────────────────────
   /// kept so existing references to AppColors.online still compile
   static const Color primaryDark     = Color(0xFF3730A3);

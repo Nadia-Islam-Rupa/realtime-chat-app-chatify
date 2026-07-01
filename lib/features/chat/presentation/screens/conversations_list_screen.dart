@@ -99,11 +99,7 @@ class _ConversationTile extends ConsumerWidget {
           if (conversation.lastMessageBy == user?.id)
             Padding(
               padding: const EdgeInsets.only(right: 4),
-              child: Icon(
-                Icons.done_all,
-                size: 14,
-                color: colorScheme.primary,
-              ),
+              child: Icon(Icons.done_all, size: 14, color: colorScheme.primary),
             ),
           Expanded(
             child: Text(
@@ -159,10 +155,7 @@ class _ConversationTile extends ConsumerWidget {
         final otherId = user != null
             ? conversation.otherUserId(user.id)
             : conversation.participantTwo;
-        context.push(
-          RouteNames.chatPath(conversation.id),
-          extra: otherId,
-        );
+        context.push(RouteNames.chatPath(conversation.id), extra: otherId);
       },
     );
   }
@@ -201,8 +194,7 @@ class _Avatar extends StatelessWidget {
         CircleAvatar(
           radius: 26,
           backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          backgroundImage:
-              imageUrl != null ? NetworkImage(imageUrl!) : null,
+          backgroundImage: imageUrl != null ? NetworkImage(imageUrl!) : null,
           child: imageUrl == null
               ? Text(
                   name.isNotEmpty ? name[0].toUpperCase() : '?',
@@ -259,15 +251,15 @@ class _EmptyConversations extends StatelessWidget {
           Text(
             'No conversations yet',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: colorScheme.onSurface.withAlpha(180),
-                ),
+              color: colorScheme.onSurface.withAlpha(180),
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Find friends and start chatting!',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurface.withAlpha(120),
-                ),
+              color: colorScheme.onSurface.withAlpha(120),
+            ),
           ),
         ],
       ),

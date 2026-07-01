@@ -136,9 +136,10 @@ class _ProfileContent extends ConsumerWidget {
     final gradientTop = isDark
         ? AppColors.backgroundDark
         : const Color(0xFF6B3FA0); // medium purple — visible but not black
-    final gradientBottom = isDark
-        ? AppColors.surfaceDark
-        : AppColors.lightBg;
+    final gradientBottom = isDark ? AppColors.surfaceDark : AppColors.lightBg;
+
+    // Online chip text color — white on dark gradient header, dark on light header
+    final chipTextColor = isDark ? Colors.white : AppColors.lightText;
 
     return SingleChildScrollView(
       child: Column(
@@ -194,7 +195,7 @@ class _ProfileContent extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: profile.isOnline
                         ? AppColors.online.withAlpha(40)
-                        : Colors.white12,
+                        : chipTextColor.withAlpha(30),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -207,14 +208,14 @@ class _ProfileContent extends ConsumerWidget {
                           shape: BoxShape.circle,
                           color: profile.isOnline
                               ? AppColors.online
-                              : Colors.white38,
+                              : chipTextColor.withAlpha(120),
                         ),
                       ),
                       const SizedBox(width: 5),
                       Text(
                         profile.isOnline ? 'Online' : 'Offline',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white,
+                          color: chipTextColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

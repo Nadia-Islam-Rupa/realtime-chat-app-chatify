@@ -427,11 +427,23 @@ class _MessageBubble extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final bubbleColor = isMine
-        ? (isDark ? AppColors.bubbleOutgoingDark : AppColors.bubbleOutgoing)
-        : (isDark ? AppColors.bubbleIncomingDark : AppColors.bubbleIncoming);
+    // Outgoing: gradient violet→pink accent (same purple in both modes)
+    // Incoming: glassy dark in dark mode, soft light surface in light mode
+    final Color bubbleColor;
+    if (isMine) {
+      bubbleColor = isDark
+          ? AppColors.bubbleOutgoingDark
+          : AppColors.bubbleOutgoing;
+    } else {
+      bubbleColor = isDark
+          ? AppColors.bubbleIncomingDark
+          : theme.colorScheme.surfaceContainerHighest;
+    }
 
-    final textColor = theme.colorScheme.onSurface;
+    // Text on outgoing bubble is always white; text on incoming adapts to theme
+    final textColor = isMine
+        ? Colors.white
+        : theme.colorScheme.onSurface;
 
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
@@ -526,9 +538,11 @@ class _MessageBubble extends StatelessWidget {
                       Icon(
                         message.isRead ? Icons.done_all : Icons.done,
                         size: 13,
+                        // Outgoing bubble is always the purple accent colour, so
+                        // white ticks give the best contrast in both modes.
                         color: message.isRead
-                            ? theme.colorScheme.primary
-                            : textColor.withAlpha(140),
+                            ? Colors.white.withAlpha(230)
+                            : Colors.white.withAlpha(140),
                       ),
                     ],
                   ],

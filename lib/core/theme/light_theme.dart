@@ -59,7 +59,7 @@ final ThemeData lightTheme = ThemeData(
     centerTitle: false,
     elevation: 0,
     scrolledUnderElevation: 1,
-    backgroundColor: Colors.purple, // white
+    backgroundColor: AppColors.lightSurface, // white
     foregroundColor: AppColors.lightText,
     surfaceTintColor: Colors.transparent,
     shadowColor: Color(0x14000000),

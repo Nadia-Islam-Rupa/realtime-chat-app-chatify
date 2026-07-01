@@ -6,10 +6,10 @@ part of 'badge_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$unreadChatsCountHash() => r'1136486baa0e1156ec086034a4c9575c33b4223a';
+String _$unreadChatsCountHash() => r'2b14a285aaa29ee7cc2337f5f3128d8a9e05b2cd';
 
-/// Streams the number of conversations with unread messages for the
-/// current user.  Returns 0 until the chat data layer is implemented.
+/// Streams the total number of unread messages across all conversations
+/// for the current user.
 ///
 /// Copied from [unreadChatsCount].
 @ProviderFor(unreadChatsCount)

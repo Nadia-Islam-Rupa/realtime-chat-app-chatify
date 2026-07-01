@@ -171,7 +171,7 @@ class _ProfileExistsProviderElement
   String get userId => (origin as ProfileExistsProvider).userId;
 }
 
-String _$appRouterHash() => r'bd3cecdf766faca2d936fecbc9bef6bc80b34f23';
+String _$appRouterHash() => r'a8b6b43581d407ef3313c0054f9c4d49d7f1d4cc';
 
 /// See also [appRouter].
 @ProviderFor(appRouter)

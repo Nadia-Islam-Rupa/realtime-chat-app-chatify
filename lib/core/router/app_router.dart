@@ -12,6 +12,7 @@ import '../../features/auth/presentation/providers/auth_providers.dart';
 import '../../features/auth/presentation/screens/sign_in_screen.dart';
 import '../../features/auth/presentation/screens/sign_up_screen.dart';
 import '../../features/calls/presentation/screens/calls_history_screen.dart';
+import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/chat/presentation/screens/conversations_list_screen.dart';
 import '../../features/friends/presentation/screens/friends_screen.dart';
 import '../../features/home/presentation/providers/home_tab_provider.dart';
@@ -78,21 +79,6 @@ class _SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: const Center(child: Text('Settings — coming soon')),
-    );
-  }
-}
-
-/// Temporary chat/conversation screen.
-/// Replace with the real ChatScreen once the chat feature is ready.
-class _ChatScreen extends StatelessWidget {
-  final String conversationId;
-  const _ChatScreen({required this.conversationId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Chat: $conversationId')),
-      body: const Center(child: Text('Chat screen — coming soon')),
     );
   }
 }
@@ -261,7 +247,13 @@ GoRouter appRouter(AppRouterRef ref) {
         name: 'chat',
         builder: (context, state) {
           final conversationId = state.pathParameters['conversationId']!;
-          return _ChatScreen(conversationId: conversationId);
+          // otherUserId is passed via extra when pushing from ConversationsListScreen
+          // or from FriendsScreen. Fall back to empty string if not provided.
+          final otherUserId = (state.extra as String?) ?? '';
+          return ChatScreen(
+            conversationId: conversationId,
+            otherUserId: otherUserId,
+          );
         },
       ),
 

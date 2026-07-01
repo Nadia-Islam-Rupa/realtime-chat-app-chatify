@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../chat/presentation/providers/chat_providers.dart';
 import '../../../friends/data/repositories/friends_repository_impl.dart';
 
 part 'badge_providers.g.dart';
@@ -9,8 +10,8 @@ part 'badge_providers.g.dart';
 // 1. Unread conversation count — Chats tab badge
 // ---------------------------------------------------------------------------
 
-/// Streams the number of conversations with unread messages for the
-/// current user.  Returns 0 until the chat data layer is implemented.
+/// Streams the total number of unread messages across all conversations
+/// for the current user.
 @riverpod
 Stream<int> unreadChatsCount(UnreadChatsCountRef ref) async* {
   final user = ref.watch(authStateProvider).valueOrNull;
@@ -19,7 +20,11 @@ Stream<int> unreadChatsCount(UnreadChatsCountRef ref) async* {
     return;
   }
 
-  yield 0;
+  yield* ref.watch(conversationsProvider.future).asStream().asyncExpand(
+        (conversations) => Stream.value(
+          conversations.fold(0, (sum, c) => sum + c.unreadCount),
+        ),
+      );
 }
 
 // ---------------------------------------------------------------------------

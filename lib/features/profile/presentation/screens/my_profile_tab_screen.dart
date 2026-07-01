@@ -5,12 +5,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/profile.dart';
 import '../providers/profile_providers.dart';
 
 /// Tab body for the Profile tab — shows the *current user's own* profile
-/// as a read-only summary with an Edit button and a Log Out button.
+/// as a read-only summary with an Edit button, a Dark/Light mode toggle,
+/// and a Log Out button.
 ///
 /// Mounted inside the HomeShellScreen IndexedStack for tab 3.
 /// No Scaffold or AppBar — provided by HomeShellScreen.
@@ -73,7 +75,6 @@ class _ProfileContent extends ConsumerWidget {
   }
 
   Future<void> _confirmAndSignOut(BuildContext context, WidgetRef ref) async {
-    // Show a confirmation dialog before signing out
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -100,9 +101,6 @@ class _ProfileContent extends ConsumerWidget {
 
     await ref.read(signOutNotifierProvider.notifier).signOut();
 
-    // The router's auth redirect will automatically send the user to /sign-in
-    // once Supabase fires the sign-out event, but we also navigate immediately
-    // so there's no visible delay.
     if (context.mounted) {
       context.go(RouteNames.signIn);
     }
@@ -112,9 +110,14 @@ class _ProfileContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     final signOutState = ref.watch(signOutNotifierProvider);
     final isSigningOut = signOutState.isLoading;
+
+    // Watch theme mode so the toggle reflects current state
+    final themeMode = ref.watch(themeModeProvider);
+    final isCurrentlyDark = themeMode == ThemeMode.dark;
 
     // Show error snackbar if sign-out fails
     ref.listen(signOutNotifierProvider, (prev, next) {
@@ -129,56 +132,92 @@ class _ProfileContent extends ConsumerWidget {
       }
     });
 
+    // Header gradient colors based on current theme
+    final gradientTop =
+        isDark ? AppColors.backgroundDark : AppColors.primaryDark;
+    final gradientBottom =
+        isDark ? AppColors.surfaceDark : colorScheme.surface;
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ── Header gradient with avatar ─────────────────────────────────
           Container(
-            height: 220,
+            height: 230,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [AppColors.primaryDark, colorScheme.surface],
+                colors: [gradientTop, gradientBottom],
               ),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 16),
-                CircleAvatar(
-                  radius: 56,
-                  backgroundColor: AppColors.primaryLight,
-                  backgroundImage: profile.imageUrl != null
-                      ? NetworkImage(profile.imageUrl!)
-                      : null,
-                  child: profile.imageUrl == null
-                      ? const Icon(Icons.person,
-                          size: 56, color: AppColors.primary)
-                      : null,
+                // Avatar with a colored ring
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primary, AppColors.accent],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 55,
+                    backgroundColor: isDark
+                        ? AppColors.surfaceDark
+                        : AppColors.primaryLight,
+                    backgroundImage: profile.imageUrl != null
+                        ? NetworkImage(profile.imageUrl!)
+                        : null,
+                    child: profile.imageUrl == null
+                        ? Icon(
+                            Icons.person,
+                            size: 52,
+                            color: colorScheme.primary,
+                          )
+                        : null,
+                  ),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: profile.isOnline
-                            ? AppColors.online
-                            : colorScheme.outline,
+                // Online / offline chip
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: profile.isOnline
+                        ? AppColors.online.withAlpha(40)
+                        : Colors.white12,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: profile.isOnline
+                              ? AppColors.online
+                              : Colors.white38,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      profile.isOnline ? 'Online' : 'Offline',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: Colors.white70),
-                    ),
-                  ],
+                      const SizedBox(width: 5),
+                      Text(
+                        profile.isOnline ? 'Online' : 'Offline',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -190,6 +229,7 @@ class _ProfileContent extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Name
                 Text(
                   profile.name,
                   style: theme.textTheme.headlineSmall
@@ -199,28 +239,37 @@ class _ProfileContent extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     profile.about!,
-                    style: theme.textTheme.bodyLarge
-                        ?.copyWith(color: colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                        color: colorScheme.onSurfaceVariant),
                   ),
                 ],
                 const SizedBox(height: 20),
 
-                // ── Edit Profile button ──────────────────────────────
+                // ── Edit Profile button ──────────────────────────────────
                 FilledButton.icon(
                   onPressed: () =>
                       context.push(RouteNames.editProfile, extra: profile),
                   icon: const Icon(Icons.edit_outlined, size: 18),
                   label: const Text('Edit Profile'),
                   style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
+                    minimumSize: const Size.fromHeight(52),
                   ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // ── Dark / Light mode toggle ─────────────────────────────
+                _DarkModeToggleTile(
+                  isDark: isCurrentlyDark,
+                  onToggle: () =>
+                      ref.read(themeModeProvider.notifier).toggle(),
                 ),
 
                 const SizedBox(height: 24),
                 const Divider(),
                 const SizedBox(height: 16),
 
-                // ── Bio ──────────────────────────────────────────────
+                // ── Bio ──────────────────────────────────────────────────
                 if (profile.bio != null && profile.bio!.isNotEmpty) ...[
                   Text(
                     'About',
@@ -234,7 +283,7 @@ class _ProfileContent extends ConsumerWidget {
                   const SizedBox(height: 16),
                 ],
 
-                // ── Info rows ────────────────────────────────────────
+                // ── Info rows ────────────────────────────────────────────
                 _InfoRow(
                   icon: Icons.calendar_today_outlined,
                   label: 'Member since',
@@ -245,7 +294,7 @@ class _ProfileContent extends ConsumerWidget {
                 const Divider(),
                 const SizedBox(height: 16),
 
-                // ── Log out button ───────────────────────────────────
+                // ── Log out button ───────────────────────────────────────
                 OutlinedButton.icon(
                   onPressed: isSigningOut
                       ? null
@@ -262,7 +311,7 @@ class _ProfileContent extends ConsumerWidget {
                       : const Icon(Icons.logout),
                   label: Text(isSigningOut ? 'Logging out…' : 'Log out'),
                   style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
+                    minimumSize: const Size.fromHeight(52),
                     foregroundColor: colorScheme.error,
                     side: BorderSide(color: colorScheme.error),
                   ),
@@ -273,6 +322,76 @@ class _ProfileContent extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dark / Light mode toggle tile
+// ---------------------------------------------------------------------------
+
+/// A styled tile that shows the current mode and lets the user toggle it.
+class _DarkModeToggleTile extends StatelessWidget {
+  final bool isDark;
+  final VoidCallback onToggle;
+
+  const _DarkModeToggleTile({
+    required this.isDark,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: colorScheme.outline.withAlpha(80),
+          width: 1.2,
+        ),
+      ),
+      child: SwitchListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        secondary: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: isDark
+                ? const Color(0xFF3730A3)
+                : AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+            color: isDark ? AppColors.primaryDarkMode : AppColors.primary,
+            size: 22,
+          ),
+        ),
+        title: Text(
+          isDark ? 'Dark Mode' : 'Light Mode',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(
+          isDark ? 'Tap to switch to light' : 'Tap to switch to dark',
+          style: theme.textTheme.bodySmall,
+        ),
+        value: isDark,
+        onChanged: (_) => onToggle(),
+        activeThumbColor: Colors.white,
+        inactiveThumbColor: AppColors.primary,
+        activeTrackColor: AppColors.primaryDarkMode,
+        inactiveTrackColor: AppColors.primaryLight,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
       ),
     );
   }

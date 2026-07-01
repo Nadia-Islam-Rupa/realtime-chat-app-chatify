@@ -1,4 +1,5 @@
 import 'package:chatify/core/router/route_names.dart';
+
 import 'package:chatify/features/friends/presentation/providers/friends_providers.dart';
 import 'package:chatify/features/friends/presentation/screens/avatar_screen.dart';
 import 'package:chatify/features/friends/presentation/screens/massage_icon.dart';

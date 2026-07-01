@@ -1,5 +1,6 @@
 import 'package:chatify/features/friends/presentation/providers/friends_providers.dart';
 import 'package:chatify/features/friends/presentation/screens/frriend_error_view.dart';
+import 'package:chatify/features/friends/presentation/screens/request_tile.dart';
 import 'package:chatify/features/friends/presentation/screens/state_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:chatify/core/router/route_names.dart';
 import 'package:chatify/features/chat/presentation/providers/chat_providers.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +24,7 @@ class _MessageIconButtonState extends ConsumerState<MessageIconButton> {
         getOrCreateConversationProvider(widget.otherUserId).future,
       );
       if (!context.mounted) return;
-      // ignore: use_build_context_synchronously
+
       context.push(RouteNames.chatPath(conv.id), extra: widget.otherUserId);
     } catch (e) {
       if (!context.mounted) return;

@@ -11,11 +11,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-
-import '../../../../core/theme/app_colors.dart';
-
-import '../../../profile/domain/entities/profile.dart';
-
 import '../providers/friends_providers.dart';
 
 /// Friends tab body — three sub-tabs:
@@ -100,30 +95,3 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen>
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Requests tab label — live badge
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Tab 0 — My Friends
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Tab 1 — Requests
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Tab 2 — Find People
-// ---------------------------------------------------------------------------
-
-
-// ---------------------------------------------------------------------------
-// Tiles
-// ---------------------------------------------------------------------------
-
-/// Incoming request tile with Accept / Reject.
-
-/// Find People tile — shows smart action button based on current relation.
-
-/// The smart action button rendered based on [RelationInfo].

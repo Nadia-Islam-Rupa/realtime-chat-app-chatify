@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,8 +9,7 @@ part 'supabase_client_provider.g.dart';
 // Fallback values used when .env asset is not available in the bundle.
 // Replace these with your actual Supabase project credentials.
 const _fallbackSupabaseUrl = 'https://mxgdkgunszcfxqhsutqy.supabase.co';
-const _fallbackAnonKey =
-    'sb_publishable_tkxO7IjjBaujruU3Wjdjzw_pb_7ePG5';
+const _fallbackAnonKey = 'sb_publishable_tkxO7IjjBaujruU3Wjdjzw_pb_7ePG5';
 
 /// Initializes Supabase from environment variables loaded via flutter_dotenv.
 /// Call once in [main] before [runApp].
@@ -37,10 +38,7 @@ Future<void> initSupabase() async {
   try {
     Supabase.instance.client; // already initialized — skip
   } catch (_) {
-    await Supabase.initialize(
-      url: url,
-      anonKey: anonKey,
-    );
+    await Supabase.initialize(url: url, anonKey: anonKey);
   }
 }
 

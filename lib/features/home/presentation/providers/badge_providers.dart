@@ -18,7 +18,7 @@ Stream<int> unreadChatsCount(UnreadChatsCountRef ref) async* {
     yield 0;
     return;
   }
-  // TODO(chat): replace with real unread-count stream once chat is built.
+
   yield 0;
 }
 
@@ -29,8 +29,7 @@ Stream<int> unreadChatsCount(UnreadChatsCountRef ref) async* {
 /// Streams the number of pending incoming friend requests for the current user.
 /// Backed by [FriendsRepository.getPendingReceivedRequests] — updates live.
 @riverpod
-Stream<int> pendingFriendRequestCount(
-    PendingFriendRequestCountRef ref) async* {
+Stream<int> pendingFriendRequestCount(PendingFriendRequestCountRef ref) async* {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) {
     yield 0;
@@ -40,8 +39,5 @@ Stream<int> pendingFriendRequestCount(
   yield* ref
       .watch(friendsRepositoryProvider)
       .getPendingReceivedRequests(user.id)
-      .map((either) => either.fold(
-            (failure) => 0,
-            (list) => list.length,
-          ));
+      .map((either) => either.fold((failure) => 0, (list) => list.length));
 }

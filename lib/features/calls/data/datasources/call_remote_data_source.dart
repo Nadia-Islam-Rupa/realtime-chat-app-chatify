@@ -113,8 +113,9 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
   }) async {
     try {
       final update = <String, dynamic>{'status': status.name};
-      if (acceptedAt != null)
+      if (acceptedAt != null) {
         update['accepted_at'] = acceptedAt.toIso8601String();
+      }
       if (endedAt != null) update['ended_at'] = endedAt.toIso8601String();
 
       await _client
@@ -151,11 +152,13 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
         );
         if (!controller.isClosed) controller.add(calls);
       } on PostgrestException catch (e) {
-        if (!controller.isClosed)
+        if (!controller.isClosed) {
           controller.addError(ServerException(e.message));
+        }
       } catch (e) {
-        if (!controller.isClosed)
+        if (!controller.isClosed) {
           controller.addError(UnknownException(e.toString()));
+        }
       }
     }
 
@@ -265,11 +268,13 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
         final call = CallModel.fromMap(list.first, otherProfile: profile);
         if (!controller.isClosed) controller.add(call);
       } on PostgrestException catch (e) {
-        if (!controller.isClosed)
+        if (!controller.isClosed) {
           controller.addError(ServerException(e.message));
+        }
       } catch (e) {
-        if (!controller.isClosed)
+        if (!controller.isClosed) {
           controller.addError(UnknownException(e.toString()));
+        }
       }
     }
 

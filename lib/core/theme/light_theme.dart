@@ -27,9 +27,9 @@ final ThemeData lightTheme = ThemeData(
     onTertiaryContainer: Color(0xFF0F4A44),
     // Surface — white, text on surface is dark
     surface: AppColors.lightSurface,
-    onSurface: AppColors.lightText, // #1E1533 — dark violet
+    onSurface: AppColors.lightText, // black
     surfaceContainerHighest: AppColors.lightCard,
-    onSurfaceVariant: AppColors.lightTextSec, // #6B5B8A — muted gray-violet
+    onSurfaceVariant: AppColors.lightTextSec, // dark gray
     // Background
     // ignore: deprecated_member_use
     background: AppColors.lightBg,

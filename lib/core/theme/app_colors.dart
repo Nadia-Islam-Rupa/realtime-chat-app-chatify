@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 /// gradients, shadows, and opacities used across Chatify.
 abstract final class AppColors {
   // ── Core background gradient ──────────────────────────────────────────────
-  static const Color bgDeep   = Color(0xFF0F0B1E); // darkest navy
-  static const Color bgMid    = Color(0xFF1A1035); // deep violet-navy
-  static const Color bgLight  = Color(0xFF2D1B4E); // purple-tinted
+  static const Color bgDeep = Color(0xFF0F0B1E); // darkest navy
+  static const Color bgMid = Color(0xFF1A1035); // deep violet-navy
+  static const Color bgLight = Color(0xFF2D1B4E); // purple-tinted
 
   static const LinearGradient backgroundGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -15,8 +15,8 @@ abstract final class AppColors {
   );
 
   // ── Primary accent — vibrant violet/purple ────────────────────────────────
-  static const Color primary       = Color(0xFF8B5CF6);
-  static const Color primaryLight  = Color(0xFFA855F7);
+  static const Color primary = Color(0xFF8B5CF6);
+  static const Color primaryLight = Color(0xFFA855F7);
 
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [Color(0xFF8B5CF6), Color(0xFFA855F7)],
@@ -42,14 +42,14 @@ abstract final class AppColors {
 
   // ── Glass surface ─────────────────────────────────────────────────────────
   /// Semi-transparent dark purple card/surface
-  static const Color glass       = Color(0xD91E1533); // 85% opacity
+  static const Color glass = Color(0xD91E1533); // 85% opacity
   static const Color glassBorder = Color(0x338B5CF6); // violet border at 20%
-  static const Color glassDark   = Color(0xBF120E24); // 75% opacity darker
+  static const Color glassDark = Color(0xBF120E24); // 75% opacity darker
 
   // ── Text ─────────────────────────────────────────────────────────────────
-  static const Color textPrimary   = Color(0xFFF5F3FF); // white-ish
+  static const Color textPrimary = Color(0xFFF5F3FF); // white-ish
   static const Color textSecondary = Color(0xFFA78BC7); // muted lavender-gray
-  static const Color textMuted     = Color(0xFF6B5B8A); // dimmer
+  static const Color textMuted = Color(0xFF6B5B8A); // dimmer
 
   // ── Online / success ─────────────────────────────────────────────────────
   static const Color online = Color(0xFF4ADE80); // neon green
@@ -69,7 +69,7 @@ abstract final class AppColors {
   );
 
   /// Incoming: glassy dark surface
-  static const Color receivedBubble       = Color(0xCC1E1533);
+  static const Color receivedBubble = Color(0xCC1E1533);
   static const Color receivedBubbleBorder = Color(0x33A78BC7);
 
   // ── Glow shadows ─────────────────────────────────────────────────────────
@@ -85,23 +85,22 @@ abstract final class AppColors {
     ),
   ];
 
-  static List<BoxShadow> avatarGlow = glowShadow(blurRadius: 16, spreadRadius: 1);
+  static List<BoxShadow> avatarGlow = glowShadow(
+    blurRadius: 16,
+    spreadRadius: 1,
+  );
 
   static List<BoxShadow> fabGlow = [
-    BoxShadow(
-      color: primary.withAlpha(80),
-      blurRadius: 24,
-      spreadRadius: 2,
-    ),
+    BoxShadow(color: primary.withAlpha(80), blurRadius: 24, spreadRadius: 2),
   ];
 
   // ── Light mode variant (lavender-white) ───────────────────────────────────
-  static const Color lightBg       = Color(0xFFF3F0FF);
-  static const Color lightSurface  = Color(0xFFFFFFFF);
-  static const Color lightCard     = Color(0xFFF0EBFF);
-  static const Color lightText     = Color(0xFF1E1533);
-  static const Color lightTextSec  = Color(0xFF6B5B8A);
-  static const Color lightDivider  = Color(0xFFDDD6FE);
+  static const Color lightBg = Color(0xFFF3F0FF);
+  static const Color lightSurface = Color(0xFFFFFFFF);
+  static const Color lightCard = Color(0xFFF0EBFF);
+  static const Color lightText = Color(0xFF000000); // pure black
+  static const Color lightTextSec = Color(0xFF424242); // dark gray
+  static const Color lightDivider = Color(0xFFDDD6FE);
 
   // ── Brightness-aware helpers ──────────────────────────────────────────────
 
@@ -122,24 +121,24 @@ abstract final class AppColors {
 
   // ── Legacy compatibility aliases ─────────────────────────────────────────
   /// kept so existing references to AppColors.online still compile
-  static const Color primaryDark     = Color(0xFF3730A3);
+  static const Color primaryDark = Color(0xFF3730A3);
   static const Color primaryLightOld = Color(0xFFEDE9FF);
-  static const Color surface         = glass;
-  static const Color surfaceDark     = Color(0xFF1E1533);
-  static const Color background      = lightBg;
-  static const Color backgroundDark  = bgDeep;
-  static const Color cardDark        = glass;
+  static const Color surface = glass;
+  static const Color surfaceDark = Color(0xFF1E1533);
+  static const Color background = lightBg;
+  static const Color backgroundDark = bgDeep;
+  static const Color cardDark = glass;
   static const Color primaryDarkMode = primary;
   static const Color secondaryDarkMode = secondary;
-  static const Color accentDarkMode  = Color(0xFF4FD1C5);
-  static const Color textPrim        = textPrimary;
+  static const Color accentDarkMode = Color(0xFF4FD1C5);
+  static const Color textPrim = textPrimary;
   static const Color textPrimaryDark = textPrimary;
   static const Color textSecondaryDark = textSecondary;
-  static const Color dividerDark     = divider;
-  static const Color bubbleOutgoing  = primary;
-  static const Color bubbleIncoming  = receivedBubble;
+  static const Color dividerDark = divider;
+  static const Color bubbleOutgoing = primary;
+  static const Color bubbleIncoming = receivedBubble;
   static const Color bubbleOutgoingDark = primary;
   static const Color bubbleIncomingDark = receivedBubble;
-  static const Color accent          = Color(0xFF4FD1C5);
-  static const Color error_          = error;
+  static const Color accent = Color(0xFF4FD1C5);
+  static const Color error_ = error;
 }

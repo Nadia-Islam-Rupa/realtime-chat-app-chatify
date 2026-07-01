@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -21,11 +20,9 @@ Stream<List<Call>> callHistory(CallHistoryRef ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value([]);
 
-  return GetCallHistoryUseCase(ref.watch(callRepositoryProvider))(user.id)
-      .map((either) => either.fold(
-            (f) => throw Exception(f.message),
-            (list) => list,
-          ));
+  return GetCallHistoryUseCase(ref.watch(callRepositoryProvider))(user.id).map(
+    (either) => either.fold((f) => throw Exception(f.message), (list) => list),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -37,11 +34,9 @@ Stream<Call?> incomingCall(IncomingCallRef ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value(null);
 
-  return GetIncomingCallUseCase(ref.watch(callRepositoryProvider))(user.id)
-      .map((either) => either.fold(
-            (f) => throw Exception(f.message),
-            (call) => call,
-          ));
+  return GetIncomingCallUseCase(ref.watch(callRepositoryProvider))(user.id).map(
+    (either) => either.fold((f) => throw Exception(f.message), (call) => call),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -50,10 +45,10 @@ Stream<Call?> incomingCall(IncomingCallRef ref) {
 
 enum WebRtcSessionState {
   idle,
-  requesting,   // caller: waiting for callee to pick up
-  ringing,      // callee: incoming call overlay visible
-  connecting,   // WebRTC negotiation in progress
-  connected,    // media flowing
+  requesting, // caller: waiting for callee to pick up
+  ringing, // callee: incoming call overlay visible
+  connecting, // WebRTC negotiation in progress
+  connected, // media flowing
   ended,
 }
 
@@ -123,7 +118,7 @@ class WebRtcSessionNotifier extends _$WebRtcSessionNotifier {
     'iceServers': [
       {'urls': 'stun:stun.l.google.com:19302'},
       {'urls': 'stun:stun1.l.google.com:19302'},
-    ]
+    ],
   };
 
   StreamSubscription<dynamic>? _signalSub;
@@ -139,7 +134,9 @@ class WebRtcSessionNotifier extends _$WebRtcSessionNotifier {
     String? conversationId,
   }) async {
     state = state.copyWith(
-        state: WebRtcSessionState.requesting, clearError: true);
+      state: WebRtcSessionState.requesting,
+      clearError: true,
+    );
 
     // 1. Request permissions
     if (!await _requestPermissions(type)) {
@@ -183,7 +180,10 @@ class WebRtcSessionNotifier extends _$WebRtcSessionNotifier {
 
   Future<void> acceptCall(Call call) async {
     state = state.copyWith(
-        state: WebRtcSessionState.connecting, call: call, clearError: true);
+      state: WebRtcSessionState.connecting,
+      call: call,
+      clearError: true,
+    );
 
     // 1. Request permissions
     if (!await _requestPermissions(call.type)) {
@@ -309,7 +309,8 @@ class WebRtcSessionNotifier extends _$WebRtcSessionNotifier {
     };
 
     pc.onConnectionState = (connectionState) {
-      if (connectionState == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+      if (connectionState ==
+          RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
         state = state.copyWith(state: WebRtcSessionState.connected);
       } else if (connectionState ==
           RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
@@ -323,7 +324,10 @@ class WebRtcSessionNotifier extends _$WebRtcSessionNotifier {
     if (isCaller) {
       final offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      await _sendSignal(callId, 'offer', {'sdp': offer.sdp, 'type': offer.type});
+      await _sendSignal(callId, 'offer', {
+        'sdp': offer.sdp,
+        'type': offer.type,
+      });
     }
   }
 
@@ -331,11 +335,11 @@ class WebRtcSessionNotifier extends _$WebRtcSessionNotifier {
     _signalSub?.cancel();
     _signalSub = ListenSignalsUseCase(ref.read(callRepositoryProvider))(callId)
         .listen((either) {
-      either.fold(
-        (f) => null, // ignore signal errors silently
-        (payload) => _handleSignal(payload),
-      );
-    });
+          either.fold(
+            (f) => null, // ignore signal errors silently
+            (payload) => _handleSignal(payload),
+          );
+        });
   }
 
   Future<void> _handleSignal(Map<String, dynamic> payload) async {
@@ -356,11 +360,10 @@ class WebRtcSessionNotifier extends _$WebRtcSessionNotifier {
         await pc.setRemoteDescription(RTCSessionDescription(sdp, type));
         final answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        await _sendSignal(
-          state.call!.id,
-          'answer',
-          {'sdp': answer.sdp, 'type': answer.type},
-        );
+        await _sendSignal(state.call!.id, 'answer', {
+          'sdp': answer.sdp,
+          'type': answer.type,
+        });
 
       case 'answer':
         if (pc == null) return;
@@ -375,11 +378,15 @@ class WebRtcSessionNotifier extends _$WebRtcSessionNotifier {
         final sdpMid = payload['sdpMid'] as String?;
         final sdpMLineIndex = payload['sdpMLineIndex'];
         if (candidate == null) return;
-        await pc.addCandidate(RTCIceCandidate(
-          candidate,
-          sdpMid,
-          sdpMLineIndex is int ? sdpMLineIndex : int.tryParse('$sdpMLineIndex') ?? 0,
-        ));
+        await pc.addCandidate(
+          RTCIceCandidate(
+            candidate,
+            sdpMid,
+            sdpMLineIndex is int
+                ? sdpMLineIndex
+                : int.tryParse('$sdpMLineIndex') ?? 0,
+          ),
+        );
 
       case 'reject':
         await _cleanup();

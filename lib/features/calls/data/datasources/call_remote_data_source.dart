@@ -72,24 +72,26 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
             'callee_id': calleeId,
             'type': type.name,
             'status': 'ringing',
-            if (conversationId != null) 'conversation_id': conversationId,
+            'conversation_id': ?conversationId,
           })
           .select()
           .single();
 
-      final call = CallModel.fromMap(row as Map<String, dynamic>);
+      final call = CallModel.fromMap(row);
 
       // Broadcast ringing event on the callee's personal notification channel
       // so their device wakes up immediately even before they join the call channel.
-      await _client.channel('user_${calleeId}_calls').sendBroadcastMessage(
-        event: 'ringing',
-        payload: {
-          'call_id': call.id,
-          'caller_id': callerId,
-          'callee_id': calleeId,
-          'type': type.name,
-        },
-      );
+      await _client
+          .channel('user_${calleeId}_calls')
+          .sendBroadcastMessage(
+            event: 'ringing',
+            payload: {
+              'call_id': call.id,
+              'caller_id': callerId,
+              'callee_id': calleeId,
+              'type': type.name,
+            },
+          );
 
       return call;
     } on PostgrestException catch (e) {
@@ -111,7 +113,8 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
   }) async {
     try {
       final update = <String, dynamic>{'status': status.name};
-      if (acceptedAt != null) update['accepted_at'] = acceptedAt.toIso8601String();
+      if (acceptedAt != null)
+        update['accepted_at'] = acceptedAt.toIso8601String();
       if (endedAt != null) update['ended_at'] = endedAt.toIso8601String();
 
       await _client
@@ -148,9 +151,11 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
         );
         if (!controller.isClosed) controller.add(calls);
       } on PostgrestException catch (e) {
-        if (!controller.isClosed) controller.addError(ServerException(e.message));
+        if (!controller.isClosed)
+          controller.addError(ServerException(e.message));
       } catch (e) {
-        if (!controller.isClosed) controller.addError(UnknownException(e.toString()));
+        if (!controller.isClosed)
+          controller.addError(UnknownException(e.toString()));
       }
     }
 
@@ -197,10 +202,13 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
   ) async {
     if (rows.isEmpty) return [];
 
-    final otherIds = rows.map((r) {
-      final caller = r['caller_id'] as String;
-      return caller == userId ? r['callee_id'] as String : caller;
-    }).toSet().toList();
+    final otherIds = rows
+        .map((r) {
+          final caller = r['caller_id'] as String;
+          return caller == userId ? r['callee_id'] as String : caller;
+        })
+        .toSet()
+        .toList();
 
     final profileRows = await _client
         .from(AppConstants.profilesTable)
@@ -251,14 +259,17 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
             .eq('id', callerId)
             .maybeSingle();
 
-        final profile =
-            profileRow != null ? ProfileModel.fromMap(profileRow) : null;
+        final profile = profileRow != null
+            ? ProfileModel.fromMap(profileRow)
+            : null;
         final call = CallModel.fromMap(list.first, otherProfile: profile);
         if (!controller.isClosed) controller.add(call);
       } on PostgrestException catch (e) {
-        if (!controller.isClosed) controller.addError(ServerException(e.message));
+        if (!controller.isClosed)
+          controller.addError(ServerException(e.message));
       } catch (e) {
-        if (!controller.isClosed) controller.addError(UnknownException(e.toString()));
+        if (!controller.isClosed)
+          controller.addError(UnknownException(e.toString()));
       }
     }
 
@@ -268,10 +279,7 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
       // Listen on callee's personal notification channel for instant ringing
       channel = _client
           .channel('user_${calleeId}_calls')
-          .onBroadcast(
-            event: 'ringing',
-            callback: (_) => fetchAndEmit(),
-          )
+          .onBroadcast(event: 'ringing', callback: (_) => fetchAndEmit())
           .onPostgresChanges(
             event: PostgresChangeEvent.all,
             schema: 'public',
@@ -303,10 +311,9 @@ class CallRemoteDataSourceImpl implements CallRemoteDataSource {
     required Map<String, dynamic> payload,
   }) async {
     try {
-      await _client.channel('call_$callId').sendBroadcastMessage(
-        event: event,
-        payload: payload,
-      );
+      await _client
+          .channel('call_$callId')
+          .sendBroadcastMessage(event: event, payload: payload);
     } catch (e) {
       throw UnknownException(e.toString());
     }

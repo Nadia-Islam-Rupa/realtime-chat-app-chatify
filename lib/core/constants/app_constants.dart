@@ -14,6 +14,7 @@ abstract final class AppConstants {
   static const String messagesTable = 'messages';
   static const String typingStatusTable = 'typing_status';
   static const String loginHistoryTable = 'login_history';
+  static const String callsTable = 'calls';
 
   // --- Supabase storage buckets ---
   static const String avatarsBucket = 'avatars';

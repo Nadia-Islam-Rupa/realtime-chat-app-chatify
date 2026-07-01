@@ -43,6 +43,12 @@ dependencies:
   # Internationalisation / date formatting
   intl: ^0.19.0
 
+  # WebRTC — audio/video calls
+  flutter_webrtc: ^1.5.2
+
+  # Runtime permissions (camera, microphone)
+  permission_handler: ^11.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

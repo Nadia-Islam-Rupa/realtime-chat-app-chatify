@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:chatify/features/friends/presentation/screens/frriend_error_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -136,7 +137,7 @@ class _MyFriendsTab extends ConsumerWidget {
 
     return friendsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => _ErrorView(message: e.toString()),
+      error: (e, _) => ErrorView(message: e.toString()),
       data: (friends) {
         if (friends.isEmpty) {
           return const _EmptyState(
@@ -206,7 +207,7 @@ class _RequestsTab extends ConsumerWidget {
 
     return requestsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => _ErrorView(message: e.toString()),
+      error: (e, _) => ErrorView(message: e.toString()),
       data: (requests) {
         if (requests.isEmpty) {
           return const _EmptyState(
@@ -296,7 +297,7 @@ class _FindPeopleTabState extends ConsumerState<_FindPeopleTab> {
         Expanded(
           child: allUsersAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => _ErrorView(message: e.toString()),
+            error: (e, _) => ErrorView(message: e.toString()),
             data: (users) {
               // Filter by query client-side
               final filtered = query.isEmpty
@@ -777,33 +778,6 @@ class _EmptyState extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.outline,
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  const _ErrorView({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium,
             ),
           ],
         ),

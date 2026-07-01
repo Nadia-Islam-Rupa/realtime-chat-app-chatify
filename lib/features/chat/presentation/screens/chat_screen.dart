@@ -110,8 +110,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _scrollToBottom();
           ref
-              .read(
-                  markAsReadNotifierProvider(widget.conversationId).notifier)
+              .read(markAsReadNotifierProvider(widget.conversationId).notifier)
               .markRead();
         });
       }
@@ -122,11 +121,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       body: Column(
         children: [
           // ── Messages list ───────────────────────────────────────────────
-          Expanded(child: _MessagesList(
-            conversationId: widget.conversationId,
-            currentUserId: currentUser?.id ?? '',
-            scrollController: _scrollController,
-          )),
+          Expanded(
+            child: _MessagesList(
+              conversationId: widget.conversationId,
+              currentUserId: currentUser?.id ?? '',
+              scrollController: _scrollController,
+            ),
+          ),
 
           // ── Typing indicator ────────────────────────────────────────────
           _TypingIndicator(
@@ -156,15 +157,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       leading: BackButton(
         onPressed: () {
           ref
-              .read(typingDebounceNotifierProvider(widget.conversationId)
-                  .notifier)
+              .read(
+                typingDebounceNotifierProvider(widget.conversationId).notifier,
+              )
               .clearTyping();
           Navigator.of(context).pop();
         },
       ),
       title: otherProfileAsync.when(
         loading: () => const SizedBox.shrink(),
-        error: (_, __) => const Text('Chat'),
+        error: (_, _) => const Text('Chat'),
         data: (profile) {
           if (profile == null) return const Text('Chat');
           return Row(
@@ -174,8 +176,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor:
-                        Theme.of(context).colorScheme.primaryContainer,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer,
                     backgroundImage: profile.imageUrl != null
                         ? NetworkImage(profile.imageUrl!)
                         : null,
@@ -185,9 +188,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 ? profile.name[0].toUpperCase()
                                 : '?',
                             style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimaryContainer,
                               fontWeight: FontWeight.bold,
                             ),
                           )
@@ -220,23 +223,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   children: [
                     Text(
                       profile.name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       _statusText(profile.isOnline, profile.lastSeen),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: profile.isOnline
-                                ? AppColors.online
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withAlpha(140),
-                          ),
+                        color: profile.isOnline
+                            ? AppColors.online
+                            : Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withAlpha(140),
+                      ),
                     ),
                   ],
                 ),
@@ -282,19 +283,17 @@ class _MessagesList extends ConsumerWidget {
 
     return messagesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) =>
-          Center(child: Text('Error: $e', style: const TextStyle(color: Colors.red))),
+      error: (e, _) => Center(
+        child: Text('Error: $e', style: const TextStyle(color: Colors.red)),
+      ),
       data: (messages) {
         if (messages.isEmpty) {
           return Center(
             child: Text(
               'Say hello! 👋',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withAlpha(120),
-                  ),
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(120),
+              ),
             ),
           );
         }
@@ -308,11 +307,9 @@ class _MessagesList extends ConsumerWidget {
             final isMine = message.senderId == currentUserId;
 
             // Show date separator if this is the first message or a new day
-            final showDateSep = index == 0 ||
-                !_isSameDay(
-                  messages[index - 1].createdAt,
-                  message.createdAt,
-                );
+            final showDateSep =
+                index == 0 ||
+                !_isSameDay(messages[index - 1].createdAt, message.createdAt);
 
             return Column(
               children: [
@@ -360,11 +357,8 @@ class _DateSeparator extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withAlpha(140),
-                  ),
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(140),
+              ),
             ),
           ),
           const Expanded(child: Divider()),
@@ -430,7 +424,7 @@ class _MessageBubble extends StatelessWidget {
                     message.mediaUrl!,
                     fit: BoxFit.cover,
                     width: double.infinity,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (_, _, _) => Container(
                       width: 200,
                       height: 150,
                       color: theme.colorScheme.surfaceContainerHighest,
@@ -451,10 +445,17 @@ class _MessageBubble extends StatelessWidget {
                 ),
                 if (message.content != null && message.content!.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 6, left: 10, right: 10, bottom: 2),
+                    padding: const EdgeInsets.only(
+                      top: 6,
+                      left: 10,
+                      right: 10,
+                      bottom: 2,
+                    ),
                     child: Text(
                       message.content!,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: textColor,
+                      ),
                     ),
                   ),
               ],
@@ -486,9 +487,7 @@ class _MessageBubble extends StatelessWidget {
                     if (isMine) ...[
                       const SizedBox(width: 3),
                       Icon(
-                        message.isRead
-                            ? Icons.done_all
-                            : Icons.done,
+                        message.isRead ? Icons.done_all : Icons.done,
                         size: 13,
                         color: message.isRead
                             ? theme.colorScheme.primary
@@ -523,7 +522,8 @@ class _TypingIndicator extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final typingAsync = ref.watch(typingStatusProvider(conversationId));
 
-    final isOtherTyping = typingAsync.valueOrNull?.any(
+    final isOtherTyping =
+        typingAsync.valueOrNull?.any(
           (ts) => ts.userId == otherUserId && ts.isTyping,
         ) ??
         false;
@@ -539,10 +539,9 @@ class _TypingIndicator extends ConsumerWidget {
           Text(
             'typing…',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withAlpha(160),
-                  fontStyle: FontStyle.italic,
-                ),
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(160),
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ],
       ),
@@ -583,7 +582,7 @@ class _TypingDotsState extends State<_TypingDots>
       height: 16,
       child: AnimatedBuilder(
         animation: _controller,
-        builder: (_, __) {
+        builder: (_, _) {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(3, (i) {
@@ -662,8 +661,9 @@ class _InputBar extends ConsumerWidget {
                 textCapitalization: TextCapitalization.sentences,
                 onChanged: (text) {
                   ref
-                      .read(typingDebounceNotifierProvider(conversationId)
-                          .notifier)
+                      .read(
+                        typingDebounceNotifierProvider(conversationId).notifier,
+                      )
                       .onTextChanged(text);
                 },
                 decoration: InputDecoration(
@@ -702,7 +702,7 @@ class _InputBar extends ConsumerWidget {
             // Send button
             AnimatedBuilder(
               animation: controller,
-              builder: (_, __) {
+              builder: (_, _) {
                 final hasText = controller.text.trim().isNotEmpty;
                 return Container(
                   width: 44,

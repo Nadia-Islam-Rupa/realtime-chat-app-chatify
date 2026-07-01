@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -37,10 +36,10 @@ Stream<List<Conversation>> conversations(ConversationsRef ref) async* {
   yield* ref
       .watch(chatRepositoryProvider)
       .getConversationsList(user.id)
-      .map((either) => either.fold(
-            (f) => throw Exception(f.message),
-            (list) => list,
-          ));
+      .map(
+        (either) =>
+            either.fold((f) => throw Exception(f.message), (list) => list),
+      );
 }
 
 // ---------------------------------------------------------------------------
@@ -53,10 +52,10 @@ Stream<List<Message>> messages(MessagesRef ref, String conversationId) {
   return ref
       .watch(chatRepositoryProvider)
       .getMessages(conversationId)
-      .map((either) => either.fold(
-            (f) => throw Exception(f.message),
-            (list) => list,
-          ));
+      .map(
+        (either) =>
+            either.fold((f) => throw Exception(f.message), (list) => list),
+      );
 }
 
 // ---------------------------------------------------------------------------
@@ -66,13 +65,14 @@ Stream<List<Message>> messages(MessagesRef ref, String conversationId) {
 /// Streams the typing-status rows for [conversationId].
 @riverpod
 Stream<List<TypingStatus>> typingStatus(
-    TypingStatusRef ref, String conversationId) {
+  TypingStatusRef ref,
+  String conversationId,
+) {
   return GetTypingStatusUseCase(ref.watch(chatRepositoryProvider))(
-          conversationId)
-      .map((either) => either.fold(
-            (f) => throw Exception(f.message),
-            (list) => list,
-          ));
+    conversationId,
+  ).map(
+    (either) => either.fold((f) => throw Exception(f.message), (list) => list),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -89,10 +89,7 @@ Future<Conversation> getOrCreateConversation(
   final result = await GetOrCreateConversationUseCase(
     ref.watch(chatRepositoryProvider),
   )(otherUserId);
-  return result.fold(
-    (f) => throw Exception(f.message),
-    (conv) => conv,
-  );
+  return result.fold((f) => throw Exception(f.message), (conv) => conv);
 }
 
 // ---------------------------------------------------------------------------
@@ -172,8 +169,7 @@ class SendMessageState {
 @riverpod
 class SendMessageNotifier extends _$SendMessageNotifier {
   @override
-  SendMessageState build(String conversationId) =>
-      const SendMessageState();
+  SendMessageState build(String conversationId) => const SendMessageState();
 
   Future<void> sendText(String content) async {
     if (content.trim().isEmpty) return;

@@ -27,7 +27,7 @@ final ThemeData lightTheme = ThemeData(
     onTertiaryContainer: Color(0xFF0F4A44),
     // Surface — white, text on surface is dark
     surface: AppColors.lightSurface,
-    onSurface: AppColors.lightText,           // #1E1533 — dark violet
+    onSurface: AppColors.lightText, // #1E1533 — dark violet
     surfaceContainerHighest: AppColors.lightCard,
     onSurfaceVariant: AppColors.lightTextSec, // #6B5B8A — muted gray-violet
     // Background
@@ -59,12 +59,12 @@ final ThemeData lightTheme = ThemeData(
     centerTitle: false,
     elevation: 0,
     scrolledUnderElevation: 1,
-    backgroundColor: AppColors.lightSurface,
+    backgroundColor: Colors.purple, // white
     foregroundColor: AppColors.lightText,
     surfaceTintColor: Colors.transparent,
     shadowColor: Color(0x14000000),
     titleTextStyle: TextStyle(
-      color: AppColors.lightText,           // dark violet title
+      color: AppColors.lightText, // dark violet title
       fontSize: 20,
       fontWeight: FontWeight.w700,
       letterSpacing: -0.3,
@@ -76,8 +76,8 @@ final ThemeData lightTheme = ThemeData(
   // White background, dark-violet unselected icons/labels,
   // violet indicator pill for the selected tab.
   navigationBarTheme: NavigationBarThemeData(
-    backgroundColor: AppColors.lightSurface,  // white
-    indicatorColor: Color(0xFFEDE9FF),         // soft lavender pill
+    backgroundColor: AppColors.lightSurface, // white
+    indicatorColor: Color(0xFFEDE9FF), // soft lavender pill
     iconTheme: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.selected)) {
         return const IconThemeData(color: AppColors.primary);
@@ -207,12 +207,12 @@ final ThemeData lightTheme = ThemeData(
   listTileTheme: const ListTileThemeData(
     iconColor: AppColors.primary,
     titleTextStyle: TextStyle(
-      color: AppColors.lightText,           // dark on light
+      color: AppColors.lightText, // dark on light
       fontSize: 15,
       fontWeight: FontWeight.w500,
     ),
     subtitleTextStyle: TextStyle(
-      color: AppColors.lightTextSec,        // muted on light
+      color: AppColors.lightTextSec, // muted on light
       fontSize: 13,
     ),
     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -225,7 +225,9 @@ final ThemeData lightTheme = ThemeData(
   chipTheme: ChipThemeData(
     backgroundColor: const Color(0xFFEDE9FF),
     labelStyle: const TextStyle(
-        color: AppColors.primary, fontWeight: FontWeight.w500),
+      color: AppColors.primary,
+      fontWeight: FontWeight.w500,
+    ),
     side: BorderSide.none,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -276,7 +278,7 @@ final ThemeData lightTheme = ThemeData(
 
   // ── SnackBar ──────────────────────────────────────────────────────────────
   snackBarTheme: SnackBarThemeData(
-    backgroundColor: AppColors.lightText,   // dark violet bg
+    backgroundColor: AppColors.lightText, // dark violet bg
     contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14),
     actionTextColor: AppColors.primary,
     behavior: SnackBarBehavior.floating,
@@ -296,11 +298,11 @@ final ThemeData lightTheme = ThemeData(
   switchTheme: SwitchThemeData(
     thumbColor: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.selected)) return Colors.white;
-      return const Color(0xFF9E9E9E);     // gray thumb when off
+      return const Color(0xFF9E9E9E); // gray thumb when off
     }),
     trackColor: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.selected)) return AppColors.primary;
-      return const Color(0xFFE0E0E0);     // light gray track when off
+      return const Color(0xFFE0E0E0); // light gray track when off
     }),
     trackOutlineColor: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.selected)) return Colors.transparent;
@@ -317,20 +319,80 @@ final ThemeData lightTheme = ThemeData(
 
   // ── Typography — ALL dark violet on light background ─────────────────────
   textTheme: const TextTheme(
-    displayLarge:  TextStyle(color: AppColors.lightText, fontSize: 57, fontWeight: FontWeight.w700),
-    displayMedium: TextStyle(color: AppColors.lightText, fontSize: 45, fontWeight: FontWeight.w700),
-    displaySmall:  TextStyle(color: AppColors.lightText, fontSize: 36, fontWeight: FontWeight.w700),
-    headlineLarge: TextStyle(color: AppColors.lightText, fontSize: 32, fontWeight: FontWeight.w700),
-    headlineMedium:TextStyle(color: AppColors.lightText, fontSize: 28, fontWeight: FontWeight.w700),
-    headlineSmall: TextStyle(color: AppColors.lightText, fontSize: 24, fontWeight: FontWeight.w700),
-    titleLarge:    TextStyle(color: AppColors.lightText, fontSize: 22, fontWeight: FontWeight.w600),
-    titleMedium:   TextStyle(color: AppColors.lightText, fontSize: 16, fontWeight: FontWeight.w600),
-    titleSmall:    TextStyle(color: AppColors.lightText, fontSize: 14, fontWeight: FontWeight.w600),
-    bodyLarge:     TextStyle(color: AppColors.lightText, fontSize: 16, fontWeight: FontWeight.w400),
-    bodyMedium:    TextStyle(color: AppColors.lightText, fontSize: 14, fontWeight: FontWeight.w400),
-    bodySmall:     TextStyle(color: AppColors.lightTextSec, fontSize: 12, fontWeight: FontWeight.w400),
-    labelLarge:    TextStyle(color: AppColors.lightText, fontSize: 14, fontWeight: FontWeight.w600),
-    labelMedium:   TextStyle(color: AppColors.lightTextSec, fontSize: 12, fontWeight: FontWeight.w500),
-    labelSmall:    TextStyle(color: AppColors.lightTextSec, fontSize: 11, fontWeight: FontWeight.w500),
+    displayLarge: TextStyle(
+      color: AppColors.lightText,
+      fontSize: 57,
+      fontWeight: FontWeight.w700,
+    ),
+    displayMedium: TextStyle(
+      color: AppColors.lightText,
+      fontSize: 45,
+      fontWeight: FontWeight.w700,
+    ),
+    displaySmall: TextStyle(
+      color: AppColors.lightText,
+      fontSize: 36,
+      fontWeight: FontWeight.w700,
+    ),
+    headlineLarge: TextStyle(
+      color: AppColors.lightText,
+      fontSize: 32,
+      fontWeight: FontWeight.w700,
+    ),
+    headlineMedium: TextStyle(
+      color: AppColors.lightText,
+      fontSize: 28,
+      fontWeight: FontWeight.w700,
+    ),
+    headlineSmall: TextStyle(
+      color: AppColors.lightText,
+      fontSize: 24,
+      fontWeight: FontWeight.w700,
+    ),
+    titleLarge: TextStyle(
+      color: AppColors.lightText,
+      fontSize: 22,
+      fontWeight: FontWeight.w600,
+    ),
+    titleMedium: TextStyle(
+      color: AppColors.lightText,
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+    ),
+    titleSmall: TextStyle(
+      color: AppColors.lightText,
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+    ),
+    bodyLarge: TextStyle(
+      color: AppColors.lightText,
+      fontSize: 16,
+      fontWeight: FontWeight.w400,
+    ),
+    bodyMedium: TextStyle(
+      color: AppColors.lightText,
+      fontSize: 14,
+      fontWeight: FontWeight.w400,
+    ),
+    bodySmall: TextStyle(
+      color: AppColors.lightTextSec,
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
+    ),
+    labelLarge: TextStyle(
+      color: AppColors.lightText,
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+    ),
+    labelMedium: TextStyle(
+      color: AppColors.lightTextSec,
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+    ),
+    labelSmall: TextStyle(
+      color: AppColors.lightTextSec,
+      fontSize: 11,
+      fontWeight: FontWeight.w500,
+    ),
   ),
 );

@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:chatify/features/friends/presentation/screens/friend_tile.dart';
 import 'package:chatify/features/friends/presentation/screens/frriend_error_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,136 +101,13 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen>
 // Requests tab label — live badge
 // ---------------------------------------------------------------------------
 
-class _RequestsTabLabel extends ConsumerWidget {
-  final String userId;
-  const _RequestsTabLabel({required this.userId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final count =
-        ref.watch(pendingRequestsProvider(userId)).valueOrNull?.length ?? 0;
-    return Tab(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Requests'),
-          if (count > 0) ...[
-            const SizedBox(width: 6),
-            Badge(label: Text('$count')),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Tab 0 — My Friends
 // ---------------------------------------------------------------------------
 
-class _MyFriendsTab extends ConsumerWidget {
-  final String userId;
-  const _MyFriendsTab({required this.userId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final friendsAsync = ref.watch(friendsListProvider(userId));
-
-    return friendsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => ErrorView(message: e.toString()),
-      data: (friends) {
-        if (friends.isEmpty) {
-          return const _EmptyState(
-            icon: Icons.people_outline,
-            title: 'No friends yet',
-            subtitle: 'Use "Find People" to connect with others',
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: friends.length,
-          separatorBuilder: (context, index) =>
-              const Divider(height: 1, indent: 72),
-          itemBuilder: (context, i) => _FriendTile(
-            friendId: friends[i].friendId,
-            currentUserId: userId,
-            onRemove: () => _confirmRemove(context, ref, friends[i].friendId),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _confirmRemove(
-    BuildContext context,
-    WidgetRef ref,
-    String friendId,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Remove friend'),
-        content: const Text('Remove this person from your friends list?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-              foregroundColor: Theme.of(ctx).colorScheme.onError,
-            ),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      ref.read(friendActionsNotifierProvider.notifier).removeFriend(friendId);
-    }
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Tab 1 — Requests
 // ---------------------------------------------------------------------------
-
-class _RequestsTab extends ConsumerWidget {
-  final String userId;
-  const _RequestsTab({required this.userId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final requestsAsync = ref.watch(pendingRequestsProvider(userId));
-
-    return requestsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => ErrorView(message: e.toString()),
-      data: (requests) {
-        if (requests.isEmpty) {
-          return const _EmptyState(
-            icon: Icons.mark_email_unread_outlined,
-            title: 'No pending requests',
-            subtitle: 'When someone sends you a request it will appear here',
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: requests.length,
-          separatorBuilder: (context, index) =>
-              const Divider(height: 1, indent: 72),
-          itemBuilder: (context, i) => _RequestTile(
-            senderId: requests[i].senderId,
-            requestId: requests[i].id,
-          ),
-        );
-      },
-    );
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Tab 2 — Find People
@@ -345,86 +223,86 @@ class _FindPeopleTabState extends ConsumerState<_FindPeopleTab> {
 // ---------------------------------------------------------------------------
 
 /// My Friends tab tile — loads profile, message shortcut, remove option.
-class _FriendTile extends ConsumerWidget {
-  final String friendId;
-  final String currentUserId;
-  final VoidCallback onRemove;
+// class _FriendTile extends ConsumerWidget {
+//   final String friendId;
+//   final String currentUserId;
+//   final VoidCallback onRemove;
 
-  const _FriendTile({
-    required this.friendId,
-    required this.currentUserId,
-    required this.onRemove,
-  });
+//   const _FriendTile({
+//     required this.friendId,
+//     required this.currentUserId,
+//     required this.onRemove,
+//   });
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(profileProvider(friendId));
-    final isLoading = ref
-        .watch(friendActionsNotifierProvider)
-        .isLoadingFor(friendId);
+//   @override
+//   Widget build(BuildContext context, WidgetRef ref) {
+//     final profileAsync = ref.watch(profileProvider(friendId));
+//     final isLoading = ref
+//         .watch(friendActionsNotifierProvider)
+//         .isLoadingFor(friendId);
 
-    return profileAsync.when(
-      loading: () => const _LoadingTile(),
-      error: (e, st) => _FallbackTile(id: friendId),
-      data: (profile) => ListTile(
-        leading: _Avatar(imageUrl: profile.imageUrl, name: profile.name),
-        title: Text(
-          profile.name,
-          style: const TextStyle(fontWeight: FontWeight.w500),
-        ),
-        subtitle: (profile.about?.isNotEmpty ?? false)
-            ? Text(profile.about!, maxLines: 1, overflow: TextOverflow.ellipsis)
-            : null,
-        trailing: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ── Direct message button ─────────────────────────
-                  _MessageIconButton(otherUserId: profile.id),
+//     return profileAsync.when(
+//       loading: () => const _LoadingTile(),
+//       error: (e, st) => _FallbackTile(id: friendId),
+//       data: (profile) => ListTile(
+//         leading: _Avatar(imageUrl: profile.imageUrl, name: profile.name),
+//         title: Text(
+//           profile.name,
+//           style: const TextStyle(fontWeight: FontWeight.w500),
+//         ),
+//         subtitle: (profile.about?.isNotEmpty ?? false)
+//             ? Text(profile.about!, maxLines: 1, overflow: TextOverflow.ellipsis)
+//             : null,
+//         trailing: isLoading
+//             ? const SizedBox(
+//                 width: 20,
+//                 height: 20,
+//                 child: CircularProgressIndicator(strokeWidth: 2),
+//               )
+//             : Row(
+//                 mainAxisSize: MainAxisSize.min,
+//                 children: [
+//                   // ── Direct message button ─────────────────────────
+//                   _MessageIconButton(otherUserId: profile.id),
 
-                  // ── More options ──────────────────────────────────
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert),
-                    onSelected: (v) {
-                      if (v == 'view') {
-                        context.push(RouteNames.profileViewPath(profile.id));
-                      } else if (v == 'remove') {
-                        onRemove();
-                      }
-                    },
-                    itemBuilder: (ctx) => const [
-                      PopupMenuItem(
-                        value: 'view',
-                        child: ListTile(
-                          dense: true,
-                          leading: Icon(Icons.person_outline),
-                          title: Text('View profile'),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'remove',
-                        child: ListTile(
-                          dense: true,
-                          leading: Icon(Icons.person_remove_outlined),
-                          title: Text('Remove friend'),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-        onTap: () => context.push(RouteNames.profileViewPath(profile.id)),
-      ),
-    );
-  }
-}
+//                   // ── More options ──────────────────────────────────
+//                   PopupMenuButton<String>(
+//                     icon: const Icon(Icons.more_vert),
+//                     onSelected: (v) {
+//                       if (v == 'view') {
+//                         context.push(RouteNames.profileViewPath(profile.id));
+//                       } else if (v == 'remove') {
+//                         onRemove();
+//                       }
+//                     },
+//                     itemBuilder: (ctx) => const [
+//                       PopupMenuItem(
+//                         value: 'view',
+//                         child: ListTile(
+//                           dense: true,
+//                           leading: Icon(Icons.person_outline),
+//                           title: Text('View profile'),
+//                           contentPadding: EdgeInsets.zero,
+//                         ),
+//                       ),
+//                       PopupMenuItem(
+//                         value: 'remove',
+//                         child: ListTile(
+//                           dense: true,
+//                           leading: Icon(Icons.person_remove_outlined),
+//                           title: Text('Remove friend'),
+//                           contentPadding: EdgeInsets.zero,
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 ],
+//               ),
+//         onTap: () => context.push(RouteNames.profileViewPath(profile.id)),
+//       ),
+//     );
+//   }
+// }
 
 /// Incoming request tile with Accept / Reject.
 class _RequestTile extends ConsumerWidget {
@@ -523,10 +401,14 @@ class _FindPeopleTile extends ConsumerWidget {
 }
 
 /// The smart action button rendered based on [RelationInfo].
-class _RelationButton extends ConsumerWidget {
+class RelationButton extends ConsumerWidget {
   final RelationInfo relation;
   final Profile profile;
-  const _RelationButton({required this.relation, required this.profile});
+  const RelationButton({
+    super.key,
+    required this.relation,
+    required this.profile,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -646,142 +528,3 @@ class _RelationButton extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 // Message icon button — opens or creates a conversation with a friend
 // ---------------------------------------------------------------------------
-
-class _MessageIconButton extends ConsumerStatefulWidget {
-  final String otherUserId;
-  const _MessageIconButton({required this.otherUserId});
-
-  @override
-  ConsumerState<_MessageIconButton> createState() => _MessageIconButtonState();
-}
-
-class _MessageIconButtonState extends ConsumerState<_MessageIconButton> {
-  bool _loading = false;
-
-  Future<void> _openChat() async {
-    setState(() => _loading = true);
-    try {
-      final conv = await ref.read(
-        getOrCreateConversationProvider(widget.otherUserId).future,
-      );
-      if (!context.mounted) return;
-      context.push(RouteNames.chatPath(conv.id), extra: widget.otherUserId);
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not open chat: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _loading
-        ? const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-        : IconButton(
-            icon: const Icon(Icons.chat_bubble_outline_rounded),
-            tooltip: 'Message',
-            color: Theme.of(context).colorScheme.primary,
-            onPressed: _openChat,
-          );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Shared micro-widgets
-// ---------------------------------------------------------------------------
-
-class _Avatar extends StatelessWidget {
-  final String? imageUrl;
-  final String name;
-  const _Avatar({required this.imageUrl, required this.name});
-
-  @override
-  Widget build(BuildContext context) {
-    if (imageUrl != null && imageUrl!.isNotEmpty) {
-      return CircleAvatar(backgroundImage: NetworkImage(imageUrl!));
-    }
-    final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
-    return CircleAvatar(
-      backgroundColor: AppColors.primaryLight,
-      child: Text(
-        initial,
-        style: const TextStyle(
-          color: AppColors.primary,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-}
-
-class _LoadingTile extends StatelessWidget {
-  const _LoadingTile();
-  @override
-  Widget build(BuildContext context) => const ListTile(
-    leading: CircleAvatar(child: Icon(Icons.person)),
-    title: Text('Loading…'),
-  );
-}
-
-class _FallbackTile extends StatelessWidget {
-  final String id;
-  const _FallbackTile({required this.id});
-  @override
-  Widget build(BuildContext context) => ListTile(
-    leading: const CircleAvatar(child: Icon(Icons.person)),
-    title: Text(id),
-  );
-}
-
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  const _EmptyState({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 64, color: theme.colorScheme.outlineVariant),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.outline,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

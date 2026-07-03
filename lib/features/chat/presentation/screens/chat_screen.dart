@@ -47,9 +47,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   void dispose() {
-    ref
-        .read(typingDebounceNotifierProvider(widget.conversationId).notifier)
-        .clearTyping();
+    // Do NOT call ref.read here — ref is invalid during unmount.
+    // Typing is cleared in the BackButton handler (while ref is still alive),
+    // and the TypingDebounceNotifier cancels its timer via ref.onDispose.
     _textController.dispose();
     _scrollController.dispose();
     _focusNode.dispose();

@@ -106,13 +106,22 @@ class TypingDebounceNotifier extends _$TypingDebounceNotifier {
   static const _debounceDuration = Duration(seconds: 3);
 
   Timer? _timer;
-  bool _disposed = false;
 
   @override
-  bool build(String conversationId) => false;
+  bool build(String conversationId) {
+    // Automatically clear typing when this provider is disposed (e.g. when
+    // the chat screen is popped and Riverpod disposes the provider).
+    ref.onDispose(() {
+      _timer?.cancel();
+      // We intentionally do NOT call ref.read here — the provider is already
+      // being torn down. The typing status will expire on its own via the
+      // debounce timeout already set in Supabase, or was already cleared by
+      // clearTyping() when the user tapped the back button.
+    });
+    return false;
+  }
 
   void onTextChanged(String text) {
-    if (_disposed) return;
     final user = ref.read(authStateProvider).valueOrNull;
     if (user == null) return;
 
@@ -123,16 +132,14 @@ class TypingDebounceNotifier extends _$TypingDebounceNotifier {
 
     _timer?.cancel();
     _timer = Timer(_debounceDuration, () {
-      if (_disposed) return;
       state = false;
       _setTyping(user.id, isTyping: false);
     });
   }
 
-  /// Call when the screen closes or the user hits send.
+  /// Call before navigating away (e.g. in the AppBar back button handler).
+  /// Safe to call while the widget — and therefore [ref] — is still alive.
   void clearTyping() {
-    if (_disposed) return;
-    _disposed = true;
     _timer?.cancel();
     final user = ref.read(authStateProvider).valueOrNull;
     if (user != null && state) {
@@ -142,7 +149,6 @@ class TypingDebounceNotifier extends _$TypingDebounceNotifier {
   }
 
   Future<void> _setTyping(String userId, {required bool isTyping}) async {
-    if (_disposed) return;
     await SetTypingStatusUseCase(ref.read(chatRepositoryProvider))(
       conversationId,
       userId,
